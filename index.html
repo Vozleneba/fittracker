@@ -1412,11 +1412,6 @@ function vReady(){
   <section class="card">${RQ.map(q=>`<div class="rq"><div class="rq-top"><b>${q.q}</b><span>${R.ans[q.k]!=null?["","плохо","ниже нормы","нормально","хорошо","отлично"][R.ans[q.k]]:""}</span></div>
     <div class="rq-scale">${[1,2,3,4,5].map(n=>`<button data-act="rq" data-k="${q.k}" data-v="${n}" aria-pressed="${R.ans[q.k]===n}" aria-label="${q.q}: ${n}">${n}</button>`).join("")}</div>
     <div class="rq-ends"><span>${q.lo}</span><span>${q.hi}</span></div></div>`).join("")}</section>
-  <section class="card dict">
-    <label for="rq-text"><b>Или скажи словами ${qh("Нажми 🎤 на клавиатуре телефона и надиктуй, например: «спал 6 часов, сил средне, ноги забиты, стресс на работе».")}</b></label>
-    <textarea id="rq-text" data-in="rqtext" placeholder="Как ты сегодня?">${esc(R.text||"")}</textarea>
-    <button class="btn small ghost" data-act="rqparse" style="align-self:flex-start">${R.parsing?"Разбираю…":"Оценить по тексту"}</button>
-  </section>
   ${z?`<section class="card zone" style="--zc:${z.c};--p:${p}"><div class="ring"><span>${p}%</span></div><div><b style="color:${z.c}">${z.t}</b><p>${z.d}</p>${readyNotes(R.ans).map(n=>`<p>• ${esc(n)}</p>`).join("")}</div></section>
     ${z.z!=="green"?`<button class="toggle" data-act="rqadj" aria-pressed="${!!R.adj}"><i></i>Облегчить базу: −1 подход, −5% веса</button>`:""}`:""}
   <button class="btn" data-act="rqgo" style="margin-top:0">${z?"Начать тренировку":"Ответь на все 5 или пропусти"}</button>
@@ -1972,10 +1967,16 @@ async function renderStory(){
 }
 async function saveStory(){
   const s=S.sessions.find(x=>x.id===S.summaryId)||S.summaryDoc;if(!S.storyBlob){toast("Картинка ещё рисуется");return}
-  let dl=null;try{dl=window.claude?await window.claude.use("downloads"):null}catch(e){}
-  if(!dl){toast("Зажми картинку и выбери «Сохранить в Фото»");return}
-  try{await dl.save({filename:`trenirovka-${s.date}-${s.day}.png`,data:S.storyBlob});toast("Сохранено")}
-  catch(e){toast(e&&e.code==="declined"?"Сохранение отменено":"Не получилось — зажми картинку и сохрани вручную")}
+  const name=`trenirovka-${s.date}-${s.day}.png`;
+  try{const f=new File([S.storyBlob],name,{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(e){if(e&&e.name==="AbortError")return}
+  const tg=window.Telegram&&Telegram.WebApp;
+  if(!tg||!tg.isVersionAtLeast||!tg.isVersionAtLeast("8.0")||!tgInitData()){toast("Зажми картинку и выбери «Сохранить в Фото»");return}
+  try{toast("Готовлю файл…");
+    const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(S.storyBlob)});
+    const j=await cloudApi("story",{png:b64,name});
+    tg.downloadFile({url:j.url,file_name:name},ok=>{if(ok)toast("Скачивается — затем открой файл и сохрани в Фото")});
+  }catch(e){toast("Не получилось: "+(e&&e.message||e))}
 }
 
 // ===== Огонёк
