@@ -2048,7 +2048,7 @@ function cycleMap(pos,vw){
     s+=`<g class="map-pt" data-st="${o.st}" data-sel="${sel?1:0}" data-vw="${vwk?1:0}" style="--c:${c}">`;
     if(o.st==="done")s+=`<circle cx="${o.x}" cy="${o.y}" r="7.5" fill="${c}"/><path d="M${o.x-3.2} ${o.y} l2.2 2.2 l4.4 -4.4" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
     else if(o.st==="next")s+=`<circle cx="${o.x}" cy="${o.y}" r="15" fill="${c}" class="map-glow"/><circle cx="${o.x}" cy="${o.y}" r="10" fill="${c}"/><circle cx="${o.x}" cy="${o.y}" r="4" fill="#fff"/>`;
-    else if(o.st==="miss")s+=`<circle cx="${o.x}" cy="${o.y}" r="6.5" fill="var(--surface)" stroke="var(--warn)" stroke-width="2"/><path d="M${o.x-2.5} ${o.y-2.5} l5 5 M${o.x+2.5} ${o.y-2.5} l-5 5" stroke="var(--warn)" stroke-width="1.6" stroke-linecap="round"/>`;
+    else if(o.st==="miss")s+=`<circle cx="${o.x}" cy="${o.y}" r="7" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1.5"/><path d="M${o.x-2.8} ${o.y-2.8} l5.6 5.6 M${o.x+2.8} ${o.y-2.8} l-5.6 5.6" stroke="var(--muted)" stroke-width="1.7" stroke-linecap="round"/>`;
     else s+=`<circle cx="${o.x}" cy="${o.y}" r="6" fill="var(--surface)" stroke="${c}" stroke-opacity="${vwk?.9:.5}" stroke-width="2"/>`;
     if(sel)s+=`<circle cx="${o.x}" cy="${o.y}" r="13" fill="none" stroke="var(--fg)" stroke-width="2"/>`;
     s+=`<circle cx="${o.x}" cy="${o.y}" r="15" fill="transparent" data-act="hpt" data-w="${o.w}" data-day="${o.d}" style="cursor:pointer"><title>${PLAN[o.d].title} · ${dm(o.dt)}</title></circle></g>`});
@@ -2071,7 +2071,7 @@ function cycleDial(pos,vw){
     const a=(-90+n*18+9)*Math.PI/180,da=.14,wedge=(ra,rb,k)=>{const [x1,y1]=q(a-da*k,rb),[x2,y2]=q(a+da*k,rb),[x3,y3]=q(a+da*k,ra),[x4,y4]=q(a-da*k,ra);return `M${x1} ${y1} A${rb} ${rb} 0 0 1 ${x2} ${y2} L${x3} ${y3} A${ra} ${ra} 0 0 0 ${x4} ${y4}Z`};
     const P=wedge(r0,r1,1),sel=w===vw&&S.hday===d,c=C(w);
     if(st==="next")s+=`<path d="${P}" fill="${c}" class="map-glow"/>`;
-    s+=st==="done"?`<path d="${P}" fill="${c}"/>`:st==="next"?`<path d="${P}" fill="#fff"/>`:st==="miss"?`<path d="${P}" fill="none" stroke="var(--warn)" stroke-width="1.6"/>`:`<path d="${P}" fill="none" stroke="${c}" stroke-opacity="${w===vw?.9:.4}" stroke-width="1.4"/>`;
+    s+=st==="done"?`<path d="${P}" fill="${c}"/>`:st==="next"?`<path d="${P}" fill="#fff"/>`:st==="miss"?(()=>{const [mx,my]=q(a,(r0+r1)/2);return `<path d="${P}" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1"/><path d="M${mx-3.5} ${my-3.5}l7 7M${mx+3.5} ${my-3.5}l-7 7" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"/>`})():`<path d="${P}" fill="none" stroke="${c}" stroke-opacity="${w===vw?.9:.4}" stroke-width="1.4"/>`;
     if(sel)s+=`<path d="${wedge(r0-4,r1+4,1.25)}" fill="none" stroke="var(--fg)" stroke-width="2"/>`;
     s+=`<path d="${wedge(r0-10,r1+9,1.6)}" fill="transparent" data-act="hpt" data-w="${w}" data-day="${d}" style="cursor:pointer"><title>${PLAN[d].title} · ${dm(dt)}</title></path>`}
   s+=`<circle cx="${cx}" cy="${cy}" r="15" fill="url(#dialSteel)"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--bg)"/>`;
