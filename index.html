@@ -2548,8 +2548,7 @@ async function applyStepsHash(){const h=S.pendingSteps;if(!h)return;S.pendingSte
 async function init(){
   S.draft=ls.get("meso-wave-draft",null);try{S.hashSeen=location.hash||""}catch(e){S.hashSeen=""}S.pendingSteps=readStepsHash();if(S.hashSeen)ls.set("meso-hash-seen",{h:S.hashSeen,at:Date.now(),ok:!!S.pendingSteps});
   let db=null;
-  for(let i=0;i<20&&!window.claude;i++) await new Promise(r=>setTimeout(r,100));
-  try{ db=window.claude&&window.claude.use?await window.claude.use("db"):null }catch(e){db=null}
+  try{ db=await makeCloudDb() }catch(e){ console.error(e); db=null; S.cloudErr=String(e&&e.message||e); setTimeout(()=>toast("Нет связи с облаком: "+S.cloudErr+". Данные сохраняются только на этом устройстве."),800) }
   if(!db){ S.store="local";S.sessions=ls.get("meso-sessions",[]);S.override=ls.get("meso-pos",null);S.daily=ls.get("meso-daily",{});S.settings=ls.get("meso-settings",null);applyCycle(ls.get("meso-cycle",null));sortS();render();applyStepsHash();return; }
   S.db=db;
   reconcileDraft(db);
@@ -2564,6 +2563,35 @@ async function init(){
   setTimeout(()=>{if(S.pendingSteps)applyStepsHash()},3000);
 }
 window.addEventListener("hashchange",()=>{try{S.hashSeen=location.hash||"";S.pendingSteps=readStepsHash();ls.set("meso-hash-seen",{h:S.hashSeen,at:Date.now(),ok:!!S.pendingSteps});if(S.pendingSteps&&S.store!=="loading")applyStepsHash();else render()}catch(e){}});
+// ===== Облако FitTracker (Supabase через Edge Function). Тот же интерфейс, что и db в Claude.
+const API_URL="https://gysvorlatszlzapquvak.supabase.co/functions/v1/api";
+function tgInitData(){try{return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData)||""}catch(e){return ""}}
+async function cloudApi(op,body={}){
+  const r=await fetch(API_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({initData:tgInitData(),op,...body})});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+}
+async function makeCloudDb(){
+  if(!tgInitData())return null;
+  const store={},L={coll:{},doc:{}};
+  const fill=docs=>{for(const k in store)delete store[k];(docs||[]).forEach(d=>{(store[d.coll]=store[d.coll]||{})[d.id]=d.data})};
+  fill((await cloudApi("all")).docs);
+  const emitColl=c=>(L.coll[c]||[]).forEach(cb=>{try{cb({docs:Object.entries(store[c]||{}).map(([id,v])=>({id,data:()=>v}))})}catch(e){console.error(e)}});
+  const emitDoc=(c,id)=>(L.doc[c+"/"+id]||[]).forEach(cb=>{const v=(store[c]||{})[id];try{cb({exists:v!=null,data:()=>v})}catch(e){console.error(e)}});
+  const ref=(c,id)=>({
+    async set(v){const val=JSON.parse(JSON.stringify(v));(store[c]=store[c]||{})[id]=val;emitColl(c);emitDoc(c,id);await cloudApi("set",{coll:c,id,data:val})},
+    async delete(){if(store[c])delete store[c][id];emitColl(c);emitDoc(c,id);await cloudApi("del",{coll:c,id})},
+    async get(){const v=(store[c]||{})[id];return {exists:v!=null,data:()=>v}},
+    onSnapshot(cb){(L.doc[c+"/"+id]=L.doc[c+"/"+id]||[]).push(cb);setTimeout(()=>emitDoc(c,id));return()=>{}}
+  });
+  const db={
+    collection:c=>({doc:id=>ref(c,id),onSnapshot(cb){(L.coll[c]=L.coll[c]||[]).push(cb);setTimeout(()=>emitColl(c));return()=>{}}}),
+    doc:p=>{const i=p.indexOf("/");return ref(p.slice(0,i),p.slice(i+1))},
+    async refresh(){fill((await cloudApi("all")).docs);Object.keys(L.coll).forEach(emitColl);Object.keys(L.doc).forEach(k=>{const i=k.indexOf("/");emitDoc(k.slice(0,i),k.slice(i+1))})}
+  };
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.view!=="workout")db.refresh().catch(()=>{})});
+  return db;
+}
+
 render();init();
 </script>
 
