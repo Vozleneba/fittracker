@@ -1814,12 +1814,11 @@ function vActivity(){
       <li><b>Find Health Samples</b>: Type = Steps, Start Date is Today. Если есть Apple Watch — добавь фильтр <b>Source</b> = одно устройство, иначе шаги посчитаются дважды.</li>
       <li><b>Calculate Statistics</b> → Sum. Затем <b>Round Number</b>.</li>
       <li><b>Format Date</b>: Current Date, Date Format = Custom, <b class="num">yyyyMMdd</b>.</li>
-      <li><b>Text</b>: ссылка ниже, где вместо ШАГИ и ДАТА вставь переменные Rounded Number и Formatted Date (именно в таком порядке). Затем <b>Replace Text</b> (запятую заменить на пусто) и <b>Open URLs</b> с Updated Text.</li>
-      <li>Вкладка Automation → «+» → <b>Time of Day</b> 21:30, Daily → <b>Run Immediately</b> → эта команда.</li>
+      <li><b>Text</b>: ссылка ниже, где вместо ШАГИ и ДАТА вставь переменные Rounded Number и Formatted Date (именно в таком порядке). Затем <b>Get Contents of URL</b> с этим Text — запрос уйдёт в фоне, ничего не откроется. При первом запуске разреши доступ «Always Allow».</li>
+      <li>Вкладка Automation → «+» → <b>Time of Day</b> 21:30, Daily → <b>Run Immediately</b>, «Notify When Run» выключи → эта команда.</li><li>Уже есть старая команда? Просто замени в ней ссылку на новую, а <b>Open URLs</b> — на <b>Get Contents of URL</b>.</li>
     </ol>
-    <div class="row-in" style="margin-top:10px"><input id="hk-url" readonly value="https://claude.ai/artifact/3HjdaRCrLnrJP8cbJ8u7qk#steps-ШАГИ-ДАТА" aria-label="Шаблон ссылки"><button class="btn small" data-act="hkcopy">Копировать</button></div>
-    <p class="foot" style="margin-top:8px">Страница откроется, запишет итог шагов за день и покажет «Шаги из „Здоровья“». Повторный запуск в тот же день просто обновит число.</p>
-    ${(()=>{const h=ls.get("meso-hash-seen",null);return `<p class="foot" style="margin-top:6px">Проверка связи: ${h?`последняя ссылка от команды (${new Date(h.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}) <b class="num">${esc(h.h)}</b> — ${h.ok?"распознана":/-$/.test(h.h)?"дошла, но без числа шагов: переменная с шагами пустая или в ней запятая":"не распознана (в числе лишние символы)"}`:"ссылок от команды ещё не было"}.</p>`})()}
+    <div class="row-in" style="margin-top:10px"><input id="hk-url" readonly value="${esc(tgStepsUrl())}" aria-label="Шаблон ссылки"><button class="btn small" data-act="hkcopy">Копировать</button></div>
+    <p class="foot" style="margin-top:8px">Ссылка личная — не публикуй её. Повторный запуск в тот же день просто обновит число, меньшее значение не перезапишет большее.</p>
   </div></div>`;
 }
 
@@ -2590,6 +2589,13 @@ async function makeCloudDb(){
   };
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.view!=="workout")db.refresh().catch(()=>{})});
   return db;
+}
+
+// Личная ссылка для «Быстрых команд» (шаги из «Здоровья» → облако)
+function tgStepsUrl(){
+  if(S.stepsUrl) return S.stepsUrl;
+  if(!S._skReq&&tgInitData()){S._skReq=1;cloudApi("stepskey").then(j=>{if(j&&j.key){S.stepsUrl=API_URL+"?k="+j.key+"&steps=ШАГИ&date=ДАТА";render()}else S._skReq=0}).catch(()=>{S._skReq=0})}
+  return "загружаю ключ…";
 }
 
 render();init();
