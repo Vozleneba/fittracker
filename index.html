@@ -870,6 +870,11 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .dial-c{font:700 11.5px var(--mono);fill:var(--muted)}
 .dial-row[data-on="0"] .dial-w{fill:color-mix(in srgb,var(--fg) 75%,transparent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.h-acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.h-acts button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 4px 9px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2));color:var(--fg);font:600 11.5px var(--sans,system-ui);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);cursor:pointer;min-width:0}
+.h-acts button svg{width:18px;height:18px;color:var(--wk-ink,var(--wk))}
+.h-acts button.d,.h-acts button.d svg{color:#ff5a4e}
+.h-acts button:active{transform:scale(.96)}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1388,7 +1393,7 @@ function vSummary(){
   <section class="card"><div style="overflow-x:auto"><table class="extab"><thead><tr><th>Упражнение</th><th class="r">Тоннаж, кг</th></tr></thead><tbody>${rows}</tbody></table></div></section>
 
   <button class="btn" data-act="tab" data-v="story" style="margin-top:0">Карточка для сторис</button>
-  <button class="btn ghost" data-act="copysum" style="margin-top:0">Скопировать итог текстом</button>
+  <button class="btn ghost" data-act="coachrep" style="margin-top:0">Отчёт для тренера</button>
   <button class="btn ghost" data-act="tab" data-v="home" style="margin-top:0">На главную</button>`;
 }
 
@@ -2210,11 +2215,29 @@ function vWorkout(){
   ${S.confirmDel==="draft"?confirmBox("Отменить тренировку?","Отмеченные подходы не сохранятся.",`data-act="dropdraft"`,"Да, удалить",true,"Продолжить"):`<button class="link" data-act="askdrop" style="align-self:center">Отменить тренировку</button>`}`;
 }
 
+const HI={
+sum:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+rep:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>',
+edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>'};
+function coachReport(s){
+  const P=S.settings&&S.settings.profile||{},T=S.settings&&S.settings.foodTarget,p=prevSame(s),R=s.readiness,d=dayDoc(s.date),f=d.food;
+  const st=x=>`${String(x.kg).replace(".",",")}×${x.reps}${x.rir!=null?`(${x.rir})`:""}`;
+  const L=[`FitTracker · отчёт для тренера`,summaryText(s)];
+  L.push(`Профиль: ${P.sex==="f"?"ж":"м"}, ${P.age||"?"} лет, рост ${P.height||"?"}, цель ${({cut:"сушка",bulk:"набор",maint:"поддержание",keep:"поддержание"})[P.goal]||P.goal||"?"}${T?` · норма ${T.kcal} ккал Б${T.p} Ж${T.f} У${T.c}`:""}`);
+  if(R)L.push(`Готовность ${R.score}%${R.adj?" (база облегчена)":""} · сон ${R.sleep} · энергия ${R.energy} · настрой ${R.mood} · стресс ${R.stress} · мышцы ${R.soreness} (1–5, 5 — лучше)`);
+  if(s.back!=null)L.push(`Поясница ${s.back}/10`);
+  const day=[];if(d.weight)day.push(`вес ${kgF(d.weight)}`);if(f&&f.kcal)day.push(`${Math.round(f.kcal)} ккал Б${Math.round(f.p||0)} Ж${Math.round(f.f||0)} У${Math.round(f.c||0)}`);if(d.steps)day.push(`${d.steps} шагов`);
+  if(day.length)L.push(`День: ${day.join(" · ")}`);
+  L.push("",`Формат: вес×повторы(повторов в запасе)${p?` · «было» — ${dm(p.date)}, неделя ${p.week}`:""}`);
+  for(const e of s.exercises||[]){const w=e.warmup||[],pe=p&&(p.exercises||[]).find(x=>x.id===e.id||x.id.split("~")[0]===e.id.split("~")[0]);
+    L.push(`- ${e.name}: ${w.length?"разм "+w.map(st).join(" ")+" | ":""}${(e.sets||[]).map(st).join(" ")}${pe?`  [было${pe.name!==e.name?` (${pe.name})`:""}: ${pe.sets.map(st).join(" ")}]`:""}`)}
+  return L.join("\n")}
 function vHistory(){
   if(!S.sessions.length) return `<h1 data-accent style="font:700 22px var(--display)">История</h1><div class="empty">Здесь появятся сохранённые тренировки.</div>`;
   const items=S.sessions.map(s=>{
     const body=(s.exercises||[]).map(e=>`<div class="row"><span>${esc(e.name)}</span><span class="num">${setsText(e)}</span></div>`).join("");
-    const del=S.confirmDel===s.id?confirmBox("Удалить тренировку?","Восстановить её будет нельзя.",`data-act="del" data-id="${esc(s.id)}"`,"Удалить",true):`<div class="ex-actions"><button class="link" data-act="showsum" data-id="${esc(s.id)}">Итог тренировки</button><button class="link" data-act="hedit" data-id="${esc(s.id)}">Изменить</button><button class="link" data-act="askdel" data-id="${esc(s.id)}" style="margin-left:auto">Удалить</button></div>`;
+    const del=S.confirmDel===s.id?confirmBox("Удалить тренировку?","Восстановить её будет нельзя.",`data-act="del" data-id="${esc(s.id)}"`,"Удалить",true):`<div class="h-acts"><button data-act="showsum" data-id="${esc(s.id)}">${HI.sum}Итог</button><button data-act="coachrep" data-id="${esc(s.id)}">${HI.rep}Отчёт</button><button data-act="hedit" data-id="${esc(s.id)}">${HI.edit}Изменить</button><button class="d" data-act="askdel" data-id="${esc(s.id)}">${HI.del}Удалить</button></div>`;
     const editing=S.edit&&S.edit.id===s.id;
     const tag=`Ц${s.cycle||2} · Н${s.week}`;
     return `<div class="card hist-item dt" data-open="${S.dt["h-"+s.id]?1:0}" style="--c:${wc(s.week)};--wk:${wc(s.week)}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="h-${esc(s.id)}"><div><div class="t">${esc(TITLES[s.day]||s.day)}</div><div class="d num">${dm(s.date)}.${s.date.slice(0,4)} · ${Math.round(tonnage(s)).toLocaleString("ru-RU")} кг${s.back!=null?` · поясница ${s.back}/10`:""}</div></div><span class="wchip" data-w="${s.week}" style="--c:${wc(s.week)}">${tag}</span></div><div class="dt-body hist-body">${body+del}</div></div>`;
@@ -2432,6 +2455,9 @@ document.addEventListener("click",ev=>{
     const doc={...dayDoc(d),cardio:[...(dayDoc(d).cardio||[]),{type:$("#cd-type").value,min:m,...(hr>0?{hr}:{})}]};saveDay(doc).then(()=>{render();toast("Кардио записано")})}
   else if(a==="cddel"){const d=S.actDate||today(),c=[...(dayDoc(d).cardio||[])];c.splice(+b.dataset.i,1);saveDay({...dayDoc(d),cardio:c}).then(render)}
   else if(a==="showsum"){S.summaryId=b.dataset.id;S.summaryDoc=null;S.summaryFrom=b.dataset.from||"history";S.view="summary";render();window.scrollTo(0,0)}
+  else if(a==="coachrep"){const rs=S.sessions.find(x=>x.id===(b.dataset.id||S.summaryId))||(!b.dataset.id&&S.summaryDoc);if(!rs)return;const txt=coachReport(rs);
+    const fb=()=>{if(navigator.share){navigator.share({text:txt}).catch(()=>{})}else toast("Не удалось скопировать")};
+    try{navigator.clipboard.writeText(txt).then(()=>toast("Отчёт скопирован — вставь его в чат с тренером"),fb)}catch(e){fb()}}
   else if(a==="copysum"){const s=S.sessions.find(x=>x.id===S.summaryId)||S.summaryDoc;if(!s)return;const txt=summaryText(s);
     try{navigator.clipboard.writeText(txt).then(()=>toast("Итог скопирован"),()=>toast("Не удалось скопировать — выдели текст вручную"))}catch(e){toast("Не удалось скопировать")}}
   else if(a==="calm"){const [y,m]=S.calMonth.split("-").map(Number);const d=new Date(y,m-1+ +b.dataset.d,1);S.calMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;S.calSel=null;render()}
@@ -2603,7 +2629,6 @@ render();init();
 </script>
 
 <script>
-// Telegram Mini App: сообщаем, что готовы, раскрываем на весь экран, тема по Telegram
 (function(){try{const tg=window.Telegram&&Telegram.WebApp;if(!tg||!tg.initData&&!tg.platform)return;tg.ready();tg.expand();
   if(tg.colorScheme)document.documentElement.setAttribute("data-theme",tg.colorScheme);
   try{tg.setHeaderColor&&tg.setHeaderColor(tg.colorScheme==="dark"?"#0b0c0f":"#eef0f3");tg.setBackgroundColor&&tg.setBackgroundColor(tg.colorScheme==="dark"?"#0b0c0f":"#eef0f3")}catch(e){}
