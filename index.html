@@ -999,7 +999,7 @@ const SEQ=["push","pull","legs","arms"];
 const TITLES={push:"Push",pull:"Pull",legs:"Legs",legsA:"Legs A",legsB:"Legs B",arms:"Arms"};
 const WEEKS=[null,
  {name:"Объём",dates:"11–16 окт",base:"3×12–15",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:63,rest:"1,5–2 мин",kcal:"2500"},
- {name:"Рост мышц",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:72,rest:"2 мин",kcal:"2500"},
+ {name:"Гипертрофия",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:72,rest:"2 мин",kcal:"2500"},
  {name:"Сила",dates:"25–30 окт",base:"4×5–6",iso:"3×12",rir:"RIR 1",rirT:1,pct:84,rest:"3 мин",kcal:"2500"},
  {name:"Пик",dates:"1–6 ноя",base:"4×3–5",iso:"3×12",rir:"RIR 0–1",rirT:.5,pct:89,rest:"3–4 мин",kcal:"2500"},
  {name:"Разгрузка",dates:"8–13 ноя",base:"2×10",iso:"2×15",rir:"RIR 3–4",rirT:3.5,pct:45,rest:"1,5 мин",kcal:"2900–3000"}];
@@ -1970,10 +1970,10 @@ function vActivity(){
       return `<button class="col" data-act="actpick" data-d="${x}" style="background:none;border:0;padding:0" aria-label="${dm(x)}: ${s} шагов"><span class="b" data-hit="${s>=g?1:0}" data-sel="${x===sel?1:0}" style="height:${Math.max(3,Math.round(s/mx*100))}px;background:${s?stepColor(s/g):"var(--surface-2)"}"></span><small>${DOW[new Date(x+"T12:00:00").getDay()]}</small></button>`}).join("")}</div>
   </section>
   <section class="card" style="display:flex;flex-direction:column;gap:10px">
-    <div class="eyebrow">Кардио · неделя: ${cardio.length} из 3–4 · ${cmin} мин ${qh("Спокойное кардио: быстрая ходьба, велосипед, дорожка в горку — 30–40 минут, 3–4 раза в неделю. Темп такой, чтобы мог говорить, но не петь (пульс 120–135).")}</div>
+    <div class="eyebrow">Кардио · неделя: ${cardio.length} из 3–4 · ${cmin} мин ${qh("LISS (спокойное кардио): быстрая ходьба, велосипед, дорожка в горку — 30–40 минут, 3–4 раза в неделю. Темп такой, чтобы мог говорить, но не петь (пульс 120–135).")}</div>
     <div class="row-in"><select id="cd-type" aria-label="Вид кардио">${CARDIO.map(c=>`<option>${c}</option>`).join("")}</select></div>
     <div class="row-in"><input id="cd-min" type="number" inputmode="numeric" placeholder="Минуты" aria-label="Минуты"><input id="cd-hr" type="number" inputmode="numeric" placeholder="Пульс, ср." aria-label="Средний пульс"><button class="btn small" data-act="cdadd">Добавить</button></div>
-    ${(d.cardio||[]).map((c,i)=>`<div class="cardio-item"><span>${esc(c.type)} · <b class="num">${c.min} мин</b>${c.hr?` · <span class="num">${c.hr} уд/мин</span>${c.hr>135?' <span style="color:var(--hold)">слишком быстро</span>':c.hr<120?' <span style="color:var(--muted)">ниже зоны</span>':""}`:""}</span><button class="link" data-act="cddel" data-i="${i}">Удалить</button></div>`).join("")||`<div class="rir">${lbl}: кардио не записано.</div>`}
+    ${(d.cardio||[]).map((c,i)=>`<div class="cardio-item"><span>${esc(c.type)} · <b class="num">${c.min} мин</b>${c.hr?` · <span class="num">${c.hr} уд/мин</span>${c.hr>135?' <span style="color:var(--hold)">выше зоны LISS</span>':c.hr<120?' <span style="color:var(--muted)">ниже зоны</span>':""}`:""}</span><button class="link" data-act="cddel" data-i="${i}">Удалить</button></div>`).join("")||`<div class="rir">${lbl}: кардио не записано.</div>`}
   </section>
   <div class="card pos dt" data-open="${S.dt.hk?1:0}">
     <div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="hk">Автоимпорт шагов из «Здоровья»</div><div class="dt-body">
