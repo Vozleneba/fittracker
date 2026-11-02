@@ -2429,7 +2429,7 @@ const FOCUS={
 const FOCUS_ALL=["even","strength","hyp","chest","back","shoulders","arms","legs","glute","upper"],FOCUS_BY_SEX={m:FOCUS_ALL,f:FOCUS_ALL,"":FOCUS_ALL};
 const EXTRA_BY_M={chest:{gym:["c_cfly","c_pecdeck","c_dbinc"],home:["c_dbfly","c_pushup"]},back:{gym:["c_cgpd","c_1crow","c_sapd"],home:["c_dbrow","c_dbpullover"]},
  shoulders:{gym:["c_clat","c_rdm","c_facepull"],home:["c_dblat","c_dbrear"]},biceps:{gym:["c_bayes","c_preacher"],home:["c_inccurl","c_conc"]},
- triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},quads:{gym:["c_legext","c_hack","c_1lp"],home:["c_goblet","c_stepup"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc"],home:["c_dbrdl","c_slrdl"]}};
+ triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},quads:{gym:["c_legext","c_hack","c_1lp"],home:["c_goblet","c_stepup"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc","c_goodm","c_glhr"],home:["c_dbrdl","c_slrdl"]}};
 function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.place==="home",old=S.pe;S.pe={pg};
   const each=fn=>pg.days.forEach(d=>d.ex.forEach(e=>fn(e,d)));
   if(f==="strength"){if(A.exp==="new"){pg.prog="linear"}else delete pg.prog;
@@ -2441,7 +2441,7 @@ function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.
     // по одному доп. упражнению на целевую мышцу в двух днях
     for(const m of F.m){const pool=(EXTRA_BY_M[m]||{})[home?"home":"gym"]||[];let added=0;
       const days=pg.days.slice().sort((a,b)=>b.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length-a.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length);
-      for(const d of days){if(added>=2)break;const id=pool.find(x=>!d.ex.some(e=>e.id===x));if(!id)continue;const c=CATM[id];
+      for(const d of days){if(added>=2)break;const id=pool.find(x=>!d.ex.some(e=>e.id===x||(CATM[e.id]&&CATM[x]&&CATM[e.id].g===CATM[x].g)));if(!id)continue;const c=CATM[id];
         const e={id,name:c.name,inc:c.inc||2.5,type:c.type};if(c.eq==="bw")e.bw=true;if(c.type==="iso"&&(pg.prog||"wave")==="wave")e.prog="double";rebuildW(e,null);d.ex.push(e);added++}}}
   S.pe=old;return pg}
 function obPreset(A){const d=+A.days;
