@@ -2416,7 +2416,7 @@ const OB_Q=[
  {k:"goal",t:"Твоя цель",o:[["cut","Сбросить жир"],["gain","Набрать мышцы"],["recomp","Подтянуть фигуру"],["keep","Держать форму"]]},
  {k:"sex",t:"Пол",o:[["m","Мужской"],["f","Женский"]]},
  {k:"exp",t:"Сколько тренируешься",o:[["new","Только начинаю"],["mid","От полугода до 2 лет"],["pro","Больше 2 лет"]]},
- {k:"days",t:"Сколько раз в неделю готов тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
+ {k:"days",t:"Сколько раз в неделю тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
  {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"]]},
  {k:"focus",t:"Акцент",o:[["even","Всё тело равномерно"],["glute","Ягодицы и ноги"]]}];
 function obPreset(A){const d=+A.days;
@@ -2426,7 +2426,7 @@ function obPreset(A){const d=+A.days;
   if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
 function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{sex:S.settings.profile.sex,goal:S.settings.profile.goal,age:S.settings.profile.age,height:S.settings.profile.height,weight:String(S.settings.profile.weight||"").replace(".",",")}:{})},consent:!!(S.settings&&S.settings.consent)}),A=O.a;
-  const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
+  const ready=OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
   let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
     res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}</p>
       ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}`:""}
@@ -2438,7 +2438,7 @@ function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
     <label>Вес, кг<input id="ob-weight" inputmode="decimal" value="${esc(A.weight||"")}" data-in="ob" data-k="weight"></label></div>
     ${A.age&&+A.age<16?`<div class="rir" style="color:#ff5a4e">Приложение — с 16 лет.</div>`:""}</section>
-  ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> Согласен, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
+  ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> ${A.sex==="f"?"Согласна":A.sex==="m"?"Согласен":"Согласен(а)"}, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
   ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
 function obHandle(a,b){const O=S.ob;if(!O)return false;
   if(a==="obs"){O.a[b.dataset.k]=b.dataset.v;render();return true}
