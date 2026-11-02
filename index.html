@@ -928,7 +928,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pr-days{display:flex;gap:6px;flex-wrap:wrap}.pr-days span{font-size:11.5px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--leaf) 10%,transparent);color:var(--fg)}
 .pr-card .btn{align-self:flex-start}
 .ob-q{display:flex;flex-direction:column;gap:10px}.ob-ch{flex-wrap:wrap;overflow:visible}.ob-ch button{padding:9px 14px;font-size:13.5px;white-space:normal;max-width:100%;text-align:left;line-height:1.3}
-.ob-cons{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.4;padding:4px 2px}.ob-cons input{width:20px;height:20px;flex:none;accent-color:var(--leaf)}
+.ob-flash{outline:2px solid var(--leaf);outline-offset:2px;transition:outline .3s}.ob-cons{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.4;padding:4px 2px}.ob-cons input{width:20px;height:20px;flex:none;accent-color:var(--leaf)}
 .ob-res{display:flex;flex-direction:column;gap:10px;border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))}.ob-p{font-size:20px}.ob-res p{margin:0;font-size:13px;color:var(--muted)}
 .ob-k{display:flex;flex-direction:column;gap:2px}.ob-k b{font-size:22px;color:var(--leaf)}.ob-k span{font-size:12.5px;color:var(--muted)}
 </style>
@@ -2546,6 +2546,11 @@ const OB_HEALTH_F=[["preg","Беременность"],["bfeed","Кормлю г
 const obNum=v=>parseFloat(String(v??"").replace(",","."));
 function obSteps(A){return A.steps==="?"?5000:obNum(A.steps)}
 function obCalc(A){return calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:OB_PACE[A.goal]?(A.goal==="cut"&&+A.age<18&&A.pace==="fast"?"std":A.pace):"std",job:A.job,train:+A.days,steps:obSteps(A),health:(A.health||[]).filter(x=>x!=="none"),healthText:A.hother||"",target:A.target||""})}
+function obMissing(A,O){const m=[];
+  for(const q of OB_Q){if(!A[q.k])m.push([q.k,q.k==="days"?"Сколько раз в неделю":q.t]);if(q.k==="goal"){if(OB_PACE[A.goal]&&!A.pace)m.push(["pace","Темп"]);if(!(A.health||[]).length)m.push(["health","Есть что-то из этого?"])}
+    if(q.k==="job"&&!(obSteps(A)>=300&&obSteps(A)<=50000))m.push(["steps","Шагов в день"])}
+  if(!(+A.age>=16))m.push(["age","Возраст"]);if(!(obNum(A.height)>=130))m.push(["height","Рост"]);if(!(obNum(A.weight)>=35))m.push(["weight","Вес"]);
+  if(!O.consent)m.push(["consent","Согласие на хранение данных"]);return m}
 function obReady(A,O){return OB_Q.every(q=>A[q.k])&&(!OB_PACE[A.goal]||A.pace)&&(A.health||[]).length&&obSteps(A)>=300&&obSteps(A)<=50000&&+A.age>=16&&obNum(A.height)>=130&&obNum(A.weight)>=35&&O.consent}
 function obPreset(A){const d=+A.days;
   if(A.place==="bw")return "home0";
@@ -2555,11 +2560,11 @@ function obPreset(A){const d=+A.days;
   if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
 function obPaceHtml(A){let o=OB_PACE[A.goal];if(!o)return "";const cut=A.goal==="cut";if(cut&&+A.age>0&&+A.age<18)o=o.filter(x=>x[0]!=="fast");
-  return `<section class="card ob-q"><div class="eyebrow">${cut?"Как быстро худеть":"Как быстро набирать"} ${qh(cut?"Спокойно — минус 0,5% веса в неделю, оптимально — 0,75%, быстро — 1%.\nСильный дефицит не сжигает больше жира — начинают уходить мышцы, растёт голод и риск сорваться.":"Без лишнего жира — +150–200 ккал к расходу, быстрее — около +300.\nБольше калорий не ускоряет рост мышц: всё лишнее уходит в жир.")}</div>
+  return `<section class="card ob-q" id="obq-pace"><div class="eyebrow">${cut?"Как быстро худеть":"Как быстро набирать"} ${qh(cut?"Спокойно — минус 0,5% веса в неделю, оптимально — 0,75%, быстро — 1%.\nСильный дефицит не сжигает больше жира — начинают уходить мышцы, растёт голод и риск сорваться.":"Без лишнего жира — +150–200 ккал к расходу, быстрее — около +300.\nБольше калорий не ускоряет рост мышц: всё лишнее уходит в жир.")}</div>
     <div class="pe-chips ob-ch">${o.map(([v,l])=>`<button data-act="obs" data-k="pace" data-v="${v}" aria-pressed="${A.pace===v}">${l}</button>`).join("")}</div>
     ${A.pace==="fast"?`<div class="rir">${cut?"Быстрее — не значит лучше: при большом дефиците уходят мышцы, а жира сгорает не больше.":"Мышцы быстрее расти не будут — лишнее пойдёт в жир."}</div>`:""}</section>`}
 function obHealthHtml(A){const h=A.health||[],opts=[...(A.sex==="f"?OB_HEALTH_F:[]),...OB_HEALTH,["none","Ничего из этого"]];
-  return `<section class="card ob-q"><div class="eyebrow">Есть что-то из этого? ${qh("Спрашиваю не для галочки — это меняет расчёт.\nБеременность, кормление грудью: худеть нельзя, ставлю поддержание.\nСбитый цикл часто значит, что еды не хватает — тогда калории не урезаю.\nБолезни почек: много белка может навредить — снижаю белок.\nСпина, колени, плечи: убираю из программы упражнения, которые их нагружают, и ставлю замены.\nОстальное: считаю как обычно и подскажу, что обсудить с врачом.")}</div>
+  return `<section class="card ob-q" id="obq-health"><div class="eyebrow">Есть что-то из этого? ${qh("Спрашиваю не для галочки — это меняет расчёт.\nБеременность, кормление грудью: худеть нельзя, ставлю поддержание.\nСбитый цикл часто значит, что еды не хватает — тогда калории не урезаю.\nБолезни почек: много белка может навредить — снижаю белок.\nСпина, колени, плечи: убираю из программы упражнения, которые их нагружают, и ставлю замены.\nОстальное: считаю как обычно и подскажу, что обсудить с врачом.")}</div>
     <div class="pe-chips ob-ch">${opts.map(([v,l])=>`<button data-act="obh" data-v="${v}" aria-pressed="${h.includes(v)}">${l}</button>`).join("")}</div>${h.includes("other")?`<div class="fx-g" style="grid-template-columns:1fr"><label>Что именно?<input id="ob-hother" placeholder="например, гастрит" value="${esc(A.hother||"")}" data-in="ob" data-k="hother" maxlength="80"></label></div>`:""}</section>`}
 function obStepsHtml(A){const unk=A.steps==="?";
   return `<div class="cq-l">Шагов в день ${qh("Открой «Здоровье» на iPhone, Google Fit или приложение часов и посмотри среднее за неделю. Можно примерно.")}</div><div class="fx-g" style="grid-template-columns:1fr 1fr"><label><input aria-label="Шагов в день" id="ob-steps" inputmode="numeric" placeholder="например, 7000" value="${unk?"":esc(A.steps||"")}" data-in="ob" data-k="steps" ${unk?"disabled":""}></label>
@@ -2575,7 +2580,7 @@ function vOnboard(){const O=S.ob||(S.ob=obInit()),A=O.a;
       ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div><div class="rir">Из ${r.p} г белка хотя бы ${Math.round(r.p*.65/5)*5} г — из мяса, рыбы, яиц или молочного: в крупах и хлебе белок есть, но мышцам он подходит хуже.</div>${r.eta?`<div class="rir"><b>${esc(r.eta)}</b></div>`:""}${r.hnote.map(n=>`<div class="rir">${esc(n)}</div>`).join("")}`:""}${obProgNotes(A).map(n=>`<div class="rir">${esc(n)}</div>`).join("")}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">Пара минут — и подберу программу и питание</div></div></div>
-  ${OB_Q.map(q=>({...q,o:q.k==="focus"?focusOpts(A).map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${gw("готов","готова","готов(а)")} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div>${q.k==="job"?obStepsHtml(A):""}</section>${q.k==="goal"?obPaceHtml(A)+obHealthHtml(A):""}`).join("")}
+  ${OB_Q.map(q=>({...q,o:q.k==="focus"?focusOpts(A).map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q" id="obq-${q.k}"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${gw("готов","готова","готов(а)")} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div>${q.k==="job"?obStepsHtml(A):""}</section>${q.k==="goal"?obPaceHtml(A)+obHealthHtml(A):""}`).join("")}
   <section class="card ob-q"><div class="eyebrow">О тебе</div><div class="fx-g" style="grid-template-columns:repeat(3,1fr)">
     <label>Возраст<input id="ob-age" inputmode="numeric" value="${esc(A.age||"")}" data-in="ob" data-k="age"></label>
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
@@ -2590,12 +2595,14 @@ function vOnboard(){const O=S.ob||(S.ob=obInit()),A=O.a;
       ${!A.sex?`<div class="rir">Сначала выбери пол — формулы для мужчин и женщин разные.</div>`:obBF(A)!=null?`<div class="ob-k"><b class="num">≈ ${String(obBF(A)).replace(".",",")}%</b><span>жира по обхватам (точность ±3–4%)</span></div>`:""}`:""}
   </section>
   ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> ${A.sex==="f"?"Согласна":A.sex==="m"?"Согласен":"Согласен(а)"}, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
-  ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
+  ${res||(()=>{const m=obMissing(A,O);return `<section class="card ob-q"><div class="eyebrow">Осталось ответить</div><div class="rir">${m.map(x=>esc(x[1])).join(" · ")}</div><button class="btn ghost" data-act="obmiss" data-k="${m[0]?m[0][0]:""}" style="margin:0">Перейти к вопросу</button></section>`})()}`}
 function obHandle(a,b){const O=S.ob;if(!O)return false;
   if(a==="obs"){const k=b.dataset.k;O.a[k]=b.dataset.v;if(O.a.focus&&!focusOpts(O.a).includes(O.a.focus))O.a.focus="even";
     if(k==="goal"&&O.a.pace&&!(OB_PACE[O.a.goal]||[]).some(x=>x[0]===O.a.pace))delete O.a.pace;
     if(k==="sex"&&O.a.sex==="m"&&O.a.health)O.a.health=O.a.health.filter(x=>!OB_HEALTH_F.some(f=>f[0]===x));render();return true}
   if(a==="obh"){const v=b.dataset.v;let h=(O.a.health||[]).slice();if(v==="none")h=h.includes("none")?[]:["none"];else{h=h.filter(x=>x!=="none");h=h.includes(v)?h.filter(x=>x!==v):[...h,v]}O.a.health=h;render();return true}
+  if(a==="obmiss"){const k=b.dataset.k,id={steps:"ob-steps",age:"ob-age",height:"ob-height",weight:"ob-weight"}[k],el=id?document.getElementById(id):k==="consent"?document.querySelector(".ob-cons"):document.getElementById("obq-"+k);
+    if(el){el.scrollIntoView({behavior:"smooth",block:"center"});if(id)setTimeout(()=>el.focus(),400);const c=el.closest(".card")||el;c.classList.add("ob-flash");setTimeout(()=>c.classList.remove("ob-flash"),1600)}return true}
   if(a==="obst"){O.a.steps=O.a.steps==="?"?"":"?";render();return true}
   if(a==="obx"){S.ob=null;S.view="home";render();return true}
   if(a==="obgo"){const A=O.a;if(!obReady(A,O))return true;const P=PRESETS.find(x=>x.id===obPreset(A)),r=obCalc(A);
