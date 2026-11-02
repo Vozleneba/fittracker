@@ -789,7 +789,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .qh{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:6px;vertical-align:middle;border-radius:50%;padding:0;
   border:1px solid var(--g-line);background:color-mix(in srgb,var(--surface-2) 70%,transparent);color:var(--muted);font:700 11px/1 var(--body);letter-spacing:0;text-transform:none;cursor:pointer;flex:none;box-shadow:inset 0 1px 0 var(--g-edge)}
 .qh[data-on],[data-act="qh"][data-on] .qh,.qh:focus-visible{color:var(--fg);outline:none;border-color:color-mix(in srgb,var(--leaf) 65%,transparent);background:color-mix(in srgb,var(--leaf) 30%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 0 10px -2px var(--leaf)}
-.tipbox{position:fixed;z-index:60;padding:12px 14px;border-radius:14px;font:500 13px/1.45 var(--body);color:var(--fg);
+.tipbox{white-space:pre-line;position:fixed;z-index:60;padding:12px 14px;border-radius:14px;font:500 13px/1.45 var(--body);color:var(--fg);
   background:linear-gradient(180deg,var(--g-hi),transparent 40%),color-mix(in srgb,var(--surface) 94%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
   border:1px solid var(--g-line);box-shadow:inset 0 1px 0 var(--g-edge),0 18px 40px -14px rgba(0,0,0,.6)}
 .ml-mac{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -1090,17 +1090,17 @@ const PROG_NAMES={wave:"Волна",double:"Двойная",linear:"Линейн
 function hist(id,n){const out=[];for(const s of S.sessions){if(isDeload(s))continue;const e=(s.exercises||[]).find(x=>x.id===id);if(e&&e.sets&&e.sets.some(x=>+x.reps>0)){out.push({s,e});if(out.length>=n)break}}return out}
 function progRec(ex,week,r,mode){
   const [sets,lo,hi,planKg]=ex.w[week-1],inc=ex.inc||2.5,H=hist(r.id,2),L=H[0],rng=lo===hi?lo:lo+"–"+hi;
-  if(week===5){const b=L?topKg(L.e):planKg;r.kg=b?Math.max(0,roundTo(b*.6,inc)):b;r.reps=hi;r.main={t:"deload",text:`Разгрузка: ${sets}×${rng} · ~60% рабочего веса`};return}
+  if(week===5){const b=L?topKg(L.e):planKg;r.kg=b?Math.max(0,roundTo(b*.6,inc)):b;r.reps=hi;r.main={t:"deload",text:`Лёгкая неделя: ${sets}×${rng} · ~60% веса`};return}
   if(!L){r.kg=planKg;r.reps=hi;r.main={t:"plan",text:`Старт: ${sets}×${rng}${planKg?` · ${fmt(planKg)} кг`:" · подбери вес"}`};
-    r.hints.push({t:"plan",text:mode==="double"?`Двойная прогрессия: когда сделаешь ${hi} повторов во всех подходах — вес вырастет на ${fmt(inc)} кг`:`Линейная прогрессия: сделал ${lo} во всех подходах — в следующий раз +${fmt(inc)} кг`});return}
+    r.hints.push({t:"plan",text:`Сделаешь ${mode==="double"?hi:lo} повторов во всех подходах — в следующий раз +${fmt(inc)} кг`});return}
   const top=topKg(L.e),atTop=L.e.sets.filter(x=>+x.kg===top),tgt=mode==="double"?hi:lo,ok=atTop.length>=sets&&atTop.every(x=>(+x.reps||0)>=tgt);
   if(ok){r.kg=top+inc;r.reps=mode==="double"?lo:lo;r.adapt=1;r.main={t:"up",text:`${sets}×${rng}: ${fmt(top)} → ${fmt(top+inc)} кг`};
-    r.hints.push({t:"plan",text:`Прошлый раз (${dm(L.s.date)}) все подходы по ${tgt}+ — прибавляем ${fmt(inc)} кг`});return}
+    r.hints.push({t:"plan",text:`В прошлый раз (${dm(L.s.date)}) получилось — сегодня +${fmt(inc)} кг`});return}
   if(mode==="linear"&&H[1]){const p=H[1],pt=topKg(p.e),pf=!p.e.sets.filter(x=>+x.kg===pt).every(x=>(+x.reps||0)>=lo);
     if(pf&&pt===top){const nk=Math.max(inc,roundTo(top*.9,inc));r.kg=nk;r.reps=lo;r.adapt=-1;r.main={t:"hold",text:`Сброс −10%: ${fmt(top)} → ${fmt(nk)} кг`};
-      r.hints.push({t:"warn",text:"Два раза подряд не дотянул до плана — откат на 10% и снова вверх"});return}}
+      r.hints.push({t:"warn",text:"Два раза подряд не получилось — берём на 10% легче и снова наращиваем"});return}}
   r.kg=top;r.reps=hi;r.main={t:"hold",text:`${sets}×${rng}: остаёмся на ${fmt(top)} кг`};
-  const mr=Math.min(...atTop.map(x=>+x.reps||0));r.hints.push({t:"plan",text:mode==="double"?`Прошлый раз минимум ${mr} повт. — добирай до ${hi} во всех подходах`:`Прошлый раз не все подходы по ${lo} — повторяем вес`})}
+  const mr=Math.min(...atTop.map(x=>+x.reps||0));r.hints.push({t:"plan",text:mode==="double"?`Тот же вес — постарайся сделать ${hi} повторов во всех подходах`:`Тот же вес — постарайся сделать ${lo} повторов во всех подходах`})}
 function rec(ex,week){
   const [sets,lo,hi,planKg]=ex.w[week-1];
   const W=WEEKS[week],r={kg:planKg,reps:hi,name:ex.name,id:ex.id,hints:[]};
@@ -2352,19 +2352,19 @@ function startKg(e){const m=peMode(e);return m==="wave"?peVal(e):(e.w[0]&&e.w[0]
 function waveW(type,val,inc){const pat=type==="base"?B:I,v=+val>0?+val:null;
   return pat.map((p,i)=>[p[0],p[1],p[2],v==null?null:type==="base"?rnd(v*PCTS[i],inc):rnd(v*[1,1,1.1,1.1,.6][i],inc)])}
 function peVal(e){if(e.type==="base")return e.orm||(e.w[2]&&e.w[2][3]?Math.round(e.w[2][3]/PCTS[2]):"");return e.w[0]&&e.w[0][3]!=null?e.w[0][3]:""}
-function peSummary(e){const w1=e.w[0],w3=e.w[2];if(peMode(e)!=="wave")return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} · ${PROG_NAMES[peMode(e)].toLowerCase()} прогрессия`;return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
+function peSummary(e){const w1=e.w[0],w3=e.w[2];if(peMode(e)!=="wave")return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} · ${PROG_NAMES[peMode(e)].toLowerCase()}`;return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
 // ===== Готовые программы (пресеты). Упражнения — id каталога; «!» в конце id — своя схема прогрессии
 const PRESETS=[
- {id:"fb3",name:"Фулбади",days:3,lvl:"Новичок",prog:"linear",d:"Всё тело за тренировку, 3 раза в неделю. Простой рост: получилось — +шаг каждую тренировку.",
+ {id:"fb3",name:"Фулбади",days:3,lvl:"Новичок",prog:"linear",d:"Всё тело за тренировку, 3 раза в неделю. Каждую тренировку вес чуть тяжелее, пока получается.",
   plan:[["Фулбади A",1,"Всё тело",["c_squat","c_bench","c_bbrow","c_dblat:double","c_crunch:double"]],
         ["Фулбади B",3,"Всё тело",["c_rdl","c_ohp","c_latpd","c_lp","c_rope:double"]],
         ["Фулбади C",5,"Всё тело",["c_lp","c_dbinc","c_crow","c_slc:double","c_dbcurl:double"]]]},
- {id:"ul4",name:"Верх / низ",days:4,lvl:"Средний",prog:"double",d:"Каждая мышца 2 раза в неделю. Работаешь в диапазоне повторов, дошёл до верха — прибавляешь вес.",
+ {id:"ul4",name:"Верх / низ",days:4,lvl:"Средний",prog:"double",d:"Каждая мышца 2 раза в неделю. Сначала добавляешь повторы, потом вес.",
   plan:[["Верх 1",1,"Грудь · спина · плечи · руки",["c_bench","c_bbrow","c_dbsp","c_latpd","c_ezcurl","c_rope"]],
         ["Низ 1",2,"Квадрицепс · бицепс бедра · икры",["c_squat","c_rdl","c_lp","c_slc","c_stcalf"]],
         ["Верх 2",4,"Грудь · спина · плечи · руки",["c_dbinc","c_crow","c_cgpd","c_dblat","c_inccurl","c_cohe"]],
         ["Низ 2",5,"Ягодицы · квадрицепс · бицепс бедра",["c_hack","c_hipthrust","c_bss","c_llc","c_scalf"]]]},
- {id:"ppl3",name:"Push / Pull / Legs",days:3,lvl:"Средний",prog:"wave",d:"Жимы, тяги и ноги в отдельные дни. База — волна по % от 1ПМ, изоляция — двойная прогрессия.",
+ {id:"ppl3",name:"Push / Pull / Legs",days:3,lvl:"Средний",prog:"wave",d:"Жимы, тяги и ноги в отдельные дни. Тяжёлые упражнения — волной по неделям, остальные — сначала повторы, потом вес.",
   plan:[["Push",1,"Грудь · плечи · трицепс",["c_bench","c_dbinc","c_dbsp","c_cfly:double","c_dblat:double","c_rope:double"]],
         ["Pull",3,"Спина · задняя дельта · бицепс",["c_latpd","c_bbrow","c_crow","c_facepull:double","c_ezcurl:double","c_hammer:double"]],
         ["Legs",5,"Квадрицепс · ягодицы · бицепс бедра",["c_squat","c_rdl","c_lp","c_legext:double","c_slc:double","c_stcalf:double"]]]},
@@ -2407,7 +2407,7 @@ function vProg(){
       <select data-in="pe" data-f="dow" data-d="${di}" aria-label="День недели">${DOW_FULL.map((n,i)=>`<option value="${i}" ${+D.dow===i?"selected":""}>${n}</option>`).join("")}</select></div>
     <input class="pe-sub" value="${esc(D.sub||"")}" data-in="pe" data-f="sub" data-d="${di}" placeholder="Мышцы, например: грудь · плечи · трицепс" aria-label="Описание дня">
     <div class="pe-list">${D.ex.map((e,ei)=>`<div class="pe-ex">
-      <div class="pe-top"><div class="pe-n"><b>${esc(e.name)}</b><span>${peSummary(e)} · шаг ${fmt(e.inc)} кг</span></div><span class="pe-mv"><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="-1" aria-label="Выше">↑</button><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="1" aria-label="Ниже">↓</button><button class="d" data-act="pedel" data-d="${di}" data-e="${ei}" aria-label="Убрать">×</button></span></div>
+      <div class="pe-top"><div class="pe-n"><b>${esc(e.name)}</b><span>${peSummary(e)} · прибавка ${fmt(e.inc)} кг</span></div><span class="pe-mv"><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="-1" aria-label="Выше">↑</button><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="1" aria-label="Ниже">↓</button><button class="d" data-act="pedel" data-d="${di}" data-e="${ei}" aria-label="Убрать">×</button></span></div>
       <div class="pe-ctl">
         <button class="pe-type" data-act="petype" data-d="${di}" data-e="${ei}" data-t="${e.type}">${e.type==="base"?"База":"Изоляция"}</button>
         <button class="pe-type pe-pm" data-act="pemode" data-d="${di}" data-e="${ei}" data-on="${e.prog?1:0}">${PROG_NAMES[peMode(e)]}</button>
@@ -2417,9 +2417,9 @@ function vProg(){
     <div class="pe-dact"><button class="link" data-act="pedmv" data-d="${di}" data-k="-1">↑ выше</button><button class="link" data-act="pedmv" data-d="${di}" data-k="1">↓ ниже</button><button class="link" data-act="pedeld" data-d="${di}" style="margin-left:auto;color:#ff5a4e">Удалить день</button></div>
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
-    <div style="flex:1"><h2>Моя программа ${qh("Дни, упражнения и рабочие веса. База идёт волной по процентам от 1ПМ: 63 → 72 → 84 → 89%, потом разгрузка. Для изоляции впиши вес первой недели — дальше он растёт сам. 1ПМ можно оценить: вес × (1 + повторы/30).")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
+    <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее. Для волны у базовых упражнений нужен 1ПМ — максимальный вес на 1 повтор (примерно: вес × (1 + повторы ÷ 30)).")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
   ${S.pe.presets?presetsBlock():`<button class="btn ghost" data-act="pepr" style="margin-top:0">Готовые программы</button>`}
-  <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Волна — 4 недели по процентам от 1ПМ, для опытных. Двойная — работаешь в диапазоне повторов; сделал верхнюю границу во всех подходах → +шаг веса. Линейная — фиксированные повторы, получилось → +шаг каждую тренировку; два срыва подряд → −10%. Для отдельного упражнения схему можно поменять кнопкой рядом с ним.")}</div>
+  <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Как растёт вес.\n\nЛинейная — каждую тренировку чуть тяжелее, пока получается. Для новичков.\n\nДвойная — сначала добавляешь повторы, потом вес. Например, 8–12: смог 12 во всех подходах — в следующий раз тяжелее.\n\nВолна — неделя за неделей вес тяжелее, повторов меньше, 5-я неделя лёгкая. Для опытных.")}</div>
     <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
   ${days}
   <button class="btn ghost" data-act="peaddd" style="margin-top:0">+ Тренировочный день</button>
@@ -2476,10 +2476,10 @@ function peInput(t){const P=S.pe&&S.pe.pg;if(!P)return;const D=P.days[+t.dataset
   if(f==="dow"){D.dow=+t.value;return}
   if(f==="rs"||f==="rlo"||f==="rhi"){const e=D.ex[+t.dataset.e],v=parseInt(t.value,10);if(!(v>0&&v<100))return;const m=peMode(e);e.rr=e.rr||[e.w[0][0],e.w[0][1],e.w[0][2]];
     if(f==="rs")e.rr[0]=Math.min(10,v);if(f==="rlo"){e.rr[1]=v;if(m==="linear"||e.rr[2]<v)e.rr[2]=v}if(f==="rhi")e.rr[2]=Math.max(v,e.rr[1]);rebuildW(e,startKg(e));e._ed=1;
-    const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · шаг ${fmt(e.inc)} кг`}return}
+    const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · прибавка ${fmt(e.inc)} кг`}return}
   if(f==="kg"){const e=D.ex[+t.dataset.e],v=parseFloat(String(t.value).replace(",","."));const ok=v>=0;
     rebuildW(e,ok?v:null);e._ed=1;
-    const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · шаг ${fmt(e.inc)} кг`}}}
+    const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · прибавка ${fmt(e.inc)} кг`}}}
 function render(){
   hideTip();
   let pos=S.view==="workout"&&S.draft?S.draft:position();
