@@ -905,11 +905,11 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pe-list{display:flex;flex-direction:column;gap:8px}
 .pe-ex{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
 .pe-n{display:flex;flex-direction:column;gap:2px}.pe-n b{font-size:14px}.pe-n span{font-size:11.5px;color:var(--muted)}
-.pe-ctl{display:flex;align-items:center;gap:8px}
+.pe-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pe-type{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--fg);font:600 11.5px var(--sans,system-ui)}
 .pe-type[data-t=base]{color:var(--leaf);border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))}
 .pe-kg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}.pe-kg input{width:70px;padding:6px 8px;text-align:center}
-.pe-mv{display:flex;gap:4px;margin-left:auto}.pe-mv button{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--muted);font-size:14px}.pe-mv .d{color:#ff5a4e}
+.pe-top{display:flex;gap:8px;align-items:flex-start}.pe-top .pe-n{flex:1;min-width:0}.pe-mv{display:flex;gap:4px;flex:none}.pe-mv button{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--muted);font-size:14px}.pe-mv .d{color:#ff5a4e}
 .pe-dact{display:flex;gap:14px}
 .pe-pick{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--leaf) 40%,var(--line))}
 .pe-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.pe-chips button{flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--muted);font:600 12px var(--sans,system-ui)}
@@ -917,6 +917,9 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pe-res{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
 .pe-res button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--fg);text-align:left}
 .pe-res button span{font-size:11.5px;color:var(--muted)}
+.pe-pm{color:var(--muted)}.pe-pm[data-on="1"]{color:#ffb03d;border-color:color-mix(in srgb,#ffb03d 50%,var(--line))}
+.pe-rr{display:flex;gap:8px}.pe-rr label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}.pe-rr input{width:46px;padding:6px;text-align:center}
+.pe-glob{display:flex;flex-direction:column;gap:8px}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1008,7 +1011,7 @@ function progFromPlan(){return {v:1,kind:"wave",days:SEQ.map(k=>{const D=PLAN[k]
 const DEF_PROGRAM=JSON.parse(JSON.stringify(progFromPlan()));
 function exFromData(o){const e={...o,w:o.w.map(w=>[...w])};if(o.warm&&typeof o.warm==="object"){const W=o.warm;e.warm=wk=>wk>=3&&wk<=4?W.h:W.l}return e}
 let PROG_SIG="";
-function loadProgram(pg){pg=pg&&pg.days&&pg.days.length?pg:DEF_PROGRAM;const sig=JSON.stringify(pg);if(sig===PROG_SIG)return false;PROG_SIG=sig;
+function loadProgram(pg){pg=pg&&pg.days&&pg.days.length?pg:DEF_PROGRAM;const sig=JSON.stringify(pg);if(sig===PROG_SIG)return false;PROG_SIG=sig;PROG_MODE=pg.prog||"wave";
   for(const k of Object.keys(PLAN))delete PLAN[k];SEQ.length=0;
   for(const D of pg.days){PLAN[D.key]={title:D.title,sub:D.sub||"",dow:D.dow,ex:D.ex.map(exFromData)};SEQ.push(D.key);TITLES[D.key]=D.title;if(typeof SHORT!=="undefined")SHORT[D.key]=D.title}
   snapBase();applyCycle(CYCLE_DOC);return true}
@@ -1073,6 +1076,24 @@ function lastFor(id,{skipDeload=true,waveOnly=false}={}){
 const topKg=e=>Math.max(...e.sets.map(x=>+x.kg||0));
 const roundTo=(x,inc)=>Math.round(x/inc)*inc;
 function lastBack(){ return S.sessions.find(s=>isWave(s)&&s.back!=null); }
+// ===== Двойная и линейная прогрессия: вес от прошлых тренировок, а не от процентов
+let PROG_MODE="wave";
+const emode=ex=>ex.prog||PROG_MODE||"wave";
+const PROG_NAMES={wave:"Волна",double:"Двойная",linear:"Линейная"};
+function hist(id,n){const out=[];for(const s of S.sessions){if(isDeload(s))continue;const e=(s.exercises||[]).find(x=>x.id===id);if(e&&e.sets&&e.sets.some(x=>+x.reps>0)){out.push({s,e});if(out.length>=n)break}}return out}
+function progRec(ex,week,r,mode){
+  const [sets,lo,hi,planKg]=ex.w[week-1],inc=ex.inc||2.5,H=hist(r.id,2),L=H[0],rng=lo===hi?lo:lo+"–"+hi;
+  if(week===5){const b=L?topKg(L.e):planKg;r.kg=b?Math.max(0,roundTo(b*.6,inc)):b;r.reps=hi;r.main={t:"deload",text:`Разгрузка: ${sets}×${rng} · ~60% рабочего веса`};return}
+  if(!L){r.kg=planKg;r.reps=hi;r.main={t:"plan",text:`Старт: ${sets}×${rng}${planKg?` · ${fmt(planKg)} кг`:" · подбери вес"}`};
+    r.hints.push({t:"plan",text:mode==="double"?`Двойная прогрессия: когда сделаешь ${hi} повторов во всех подходах — вес вырастет на ${fmt(inc)} кг`:`Линейная прогрессия: сделал ${lo} во всех подходах — в следующий раз +${fmt(inc)} кг`});return}
+  const top=topKg(L.e),atTop=L.e.sets.filter(x=>+x.kg===top),tgt=mode==="double"?hi:lo,ok=atTop.length>=sets&&atTop.every(x=>(+x.reps||0)>=tgt);
+  if(ok){r.kg=top+inc;r.reps=mode==="double"?lo:lo;r.adapt=1;r.main={t:"up",text:`${sets}×${rng}: ${fmt(top)} → ${fmt(top+inc)} кг`};
+    r.hints.push({t:"plan",text:`Прошлый раз (${dm(L.s.date)}) все подходы по ${tgt}+ — прибавляем ${fmt(inc)} кг`});return}
+  if(mode==="linear"&&H[1]){const p=H[1],pt=topKg(p.e),pf=!p.e.sets.filter(x=>+x.kg===pt).every(x=>(+x.reps||0)>=lo);
+    if(pf&&pt===top){const nk=Math.max(inc,roundTo(top*.9,inc));r.kg=nk;r.reps=lo;r.adapt=-1;r.main={t:"hold",text:`Сброс −10%: ${fmt(top)} → ${fmt(nk)} кг`};
+      r.hints.push({t:"warn",text:"Два раза подряд не дотянул до плана — откат на 10% и снова вверх"});return}}
+  r.kg=top;r.reps=hi;r.main={t:"hold",text:`${sets}×${rng}: остаёмся на ${fmt(top)} кг`};
+  const mr=Math.min(...atTop.map(x=>+x.reps||0));r.hints.push({t:"plan",text:mode==="double"?`Прошлый раз минимум ${mr} повт. — добирай до ${hi} во всех подходах`:`Прошлый раз не все подходы по ${lo} — повторяем вес`})}
 function rec(ex,week){
   const [sets,lo,hi,planKg]=ex.w[week-1];
   const W=WEEKS[week],r={kg:planKg,reps:hi,name:ex.name,id:ex.id,hints:[]};
@@ -1085,8 +1106,10 @@ function rec(ex,week){
     r.hints.push({t:"plan",text:"Рюкзак не даёт нужные +31/+38 кг — меняем на тренажёр"});
     return r;
   }
+  const mode=emode(ex);
+  if(mode!=="wave")progRec(ex,week,r,mode);
   // ===== Автоподстройка под твои логи этого цикла
-  const L=lastInCycle(r.id);
+  const L=mode==="wave"?lastInCycle(r.id):null;
   if(L&&week!==5&&!(ex.bw&&r.id===ex.id)&&planKg){
     const e=L.e,lw=L.s.week,[ra,rb]=RIRB[lw],tgtR=(ra+rb)/2,work=e.sets.filter(x=>+x.kg>0);
     if(work.length){
@@ -2238,7 +2261,70 @@ const CAT=[
  ["c_legraise","Подъём ног в висе","abs","bw","iso","absflex",2.5],
  ["c_mcrunch","Скручивания в тренажёре","abs","mach","iso","absflex",5],
  ["c_plank","Планка (секунды вместо повторов)","abs","bw","iso","absstab",2.5],
- ["c_wrist","Сгибания кистей со штангой","forearms","bb","iso","wrist",1]
+ ["c_wrist","Сгибания кистей со штангой","forearms","bb","iso","wrist",1],
+ ["c_declbench","Жим штанги на наклонной вниз головой","chest","bb","base","hpress",2.5],
+ ["c_dbdecl","Жим гантелей вниз головой (кг на гантель)","chest","db","base","hpress",2],
+ ["c_hschest","Жим в рычажном тренажёре (Hammer) от груди","chest","mach","base","hpress",5],
+ ["c_hsinc","Жим в рычажном тренажёре на наклонной","chest","mach","base","ipress",5],
+ ["c_mdips","Отжимания на брусьях в тренажёре","chest","mach","base","dip",5],
+ ["c_svend","Сжатие диска перед грудью (Svend press)","chest","bb","iso","fly",1.25],
+ ["c_mfly","Сведение рук в тренажёре сидя","chest","mach","iso","fly",5],
+ ["c_kbpress","Жим гири лёжа на полу","chest","kb","base","hpress",4],
+ ["c_bandpush","Отжимания с резиной","chest","band","iso","dip",2.5],
+ ["c_wgpd","Тяга верхнего блока обратным хватом","back","cable","base","vpull",5],
+ ["c_1pd","Тяга верхнего блока одной рукой","back","cable","base","vpull",2.5],
+ ["c_hspd","Тяга сверху в рычажном тренажёре","back","mach","base","vpull",5],
+ ["c_pendlay","Тяга Пендли","back","bb","base","hrow",2.5],
+ ["c_hsrow","Тяга в рычажном тренажёре (Hammer)","back","mach","base","hrow",5],
+ ["c_kbrow","Тяга гири в наклоне","back","kb","base","hrow",4],
+ ["c_invrow","Австралийские подтягивания","back","bw","base","hrow",2.5],
+ ["c_bandrow","Тяга резины к поясу","back","band","iso","hrow",2.5],
+ ["c_mpullover","Пуловер в тренажёре","back","mach","iso","pullover",5],
+ ["c_sapd","Тяга прямыми руками на верхнем блоке","back","cable","iso","pullover",2.5],
+ ["c_sumo","Становая тяга сумо","back","bb","base","dl",5],
+ ["c_trapbar","Становая тяга с трэп-грифом","back","bb","base","dl",5],
+ ["c_kbswing","Махи гирей","glutes","kb","base","hinge",4],
+ ["c_rhyper","Обратная гиперэкстензия","glutes","mach","iso","hyper",5],
+ ["c_arnold","Жим Арнольда (кг на гантель)","shoulders","db","base","ovpress",2],
+ ["c_landmine","Жим штанги одной рукой от плеча (landmine)","shoulders","bb","base","ovpress",2.5],
+ ["c_kbsp","Жим гири стоя","shoulders","kb","base","ovpress",4],
+ ["c_cuprow","Протяжка на нижнем блоке","shoulders","cable","iso","uprow",2.5],
+ ["c_lylat","Махи в стороны лёжа на наклонной (кг на гантель)","shoulders","db","iso","latr",1],
+ ["c_frontr","Подъём гантелей перед собой (кг на гантель)","shoulders","db","iso","front",1],
+ ["c_cfront","Подъём перед собой на нижнем блоке","shoulders","cable","iso","front",2.5],
+ ["c_bandpa","Разведение резины перед собой","shoulders","band","iso","rear",2.5],
+ ["c_mshrug","Шраги в тренажёре","traps","mach","iso","shrug",5],
+ ["c_cshrug","Шраги на нижнем блоке","traps","cable","iso","shrug",2.5],
+ ["c_spider","Паучьи сгибания (кг на гантель)","biceps","db","iso","curl",1],
+ ["c_conc","Концентрированные сгибания","biceps","db","iso","curl",1],
+ ["c_mcurl","Сгибания в тренажёре","biceps","mach","iso","curl",2.5],
+ ["c_bandcurl","Сгибания с резиной","biceps","band","iso","curl",2.5],
+ ["c_revcurl","Сгибания обратным хватом","forearms","bb","iso","hammer",2.5],
+ ["c_jmpress","JM-жим","triceps","bb","base","tripress",2.5],
+ ["c_mtridip","Разгибания в тренажёре (трицепс-машина)","triceps","mach","iso","pushdown",5],
+ ["c_kickt","Разгибание руки в наклоне (кик-бэк)","triceps","db","iso","pushdown",1],
+ ["c_dmpush","Отжимания с узкой постановкой рук","triceps","bw","iso","tripress",2.5],
+ ["c_pendsq","Маятниковые приседания","quads","mach","base","squat",5],
+ ["c_vsquat","V-squat в тренажёре","quads","mach","base","squat",5],
+ ["c_kbgob","Гоблет-приседания с гирей","quads","kb","base","squat",4],
+ ["c_stepup","Зашагивания на тумбу (кг на гантель)","quads","db","base","lunge",2],
+ ["c_sissy","Сисси-приседания","quads","bw","iso","legext",2.5],
+ ["c_1legext","Разгибание одной ноги в тренажёре","quads","mach","iso","legext",2.5],
+ ["c_slrdl","Румынская тяга на одной ноге (кг на гантель)","hams","db","base","hinge",2],
+ ["c_stlc","Сгибание ноги стоя в тренажёре","hams","mach","iso","legcurl",2.5],
+ ["c_glhr","Подъём на ягодично-бедренном станке (GHR)","hams","bw","iso","legcurl",2.5],
+ ["c_glbridge","Ягодичный мост на полу","glutes","bw","iso","thrust",2.5],
+ ["c_mkick","Отведение ноги назад в тренажёре","glutes","mach","iso","kick",5],
+ ["c_cabduct","Отведение ноги в сторону в кроссовере","glutes","cable","iso","abduct",2.5],
+ ["c_bandwalk","Ходьба с мини-резиной","glutes","band","iso","abduct",2.5],
+ ["c_smcalf","Подъём на носки в Смите","calves","smith","iso","calf",5],
+ ["c_1calf","Подъём на носки на одной ноге (кг на гантель)","calves","db","iso","calf",2],
+ ["c_hcrunch","Подъём коленей в упоре на брусьях","abs","bw","iso","absflex",2.5],
+ ["c_abwheel","Ролик для пресса","abs","bw","iso","absstab",2.5],
+ ["c_pallof","Жим Паллофа","abs","cable","iso","absstab",2.5],
+ ["c_wood","Дровосек на блоке","abs","cable","iso","absrot",2.5],
+ ["c_farmer","Прогулка фермера (кг на гантель)","forearms","db","iso","carry",2],
+ ["c_revwrist","Разгибания кистей со штангой","forearms","bb","iso","wrist",1]
 ];
 const CATM=Object.fromEntries(CAT.map(r=>[r[0],{id:r[0],name:r[1],m:r[2],eq:r[3],type:r[4],g:r[5],inc:r[6]}]));
 // Замены из каталога: та же группа движения, без коэффициента — вес подбором
@@ -2250,10 +2336,16 @@ const DOW_FULL=["Воскресенье","Понедельник","Вторни�
 const curProgram=()=>(S.settings&&S.settings.program&&S.settings.program.days&&S.settings.program.days.length)?S.settings.program:DEF_PROGRAM;
 const rnd=(x,inc)=>x==null?null:Math.max(0,Math.round(x/(inc||2.5))*(inc||2.5));
 // Рабочие веса волны: база — от 1ПМ по процентам недели, изоляция — от веса недели 1
+const RR_DEF={double:{base:[3,6,10],iso:[3,10,15]},linear:{base:[3,5,5],iso:[3,10,10]}};
+function rrW(rr,val,inc){const [n,lo,hi]=rr,v=+val>0?+val:null;return [0,1,2,3,4].map(i=>[i===4?Math.max(2,n-1):n,lo,hi,v==null?null:i===4?rnd(v*.6,inc):rnd(v,inc)])}
+const peMode=e=>e.prog||(S.pe&&S.pe.pg.prog)||"wave";
+function rebuildW(e,val){const m=peMode(e);if(m==="wave"){e.w=waveW(e.type,val,e.inc);if(e.type==="base"&&+val>0)e.orm=+val;else delete e.orm}
+  else{e.rr=e.rr||RR_DEF[m][e.type].slice();e.w=rrW(e.rr,val,e.inc);delete e.orm}}
+function startKg(e){const m=peMode(e);return m==="wave"?peVal(e):(e.w[0]&&e.w[0][3]!=null?e.w[0][3]:"")}
 function waveW(type,val,inc){const pat=type==="base"?B:I,v=+val>0?+val:null;
   return pat.map((p,i)=>[p[0],p[1],p[2],v==null?null:type==="base"?rnd(v*PCTS[i],inc):rnd(v*[1,1,1.1,1.1,.6][i],inc)])}
 function peVal(e){if(e.type==="base")return e.orm||(e.w[2]&&e.w[2][3]?Math.round(e.w[2][3]/PCTS[2]):"");return e.w[0]&&e.w[0][3]!=null?e.w[0][3]:""}
-function peSummary(e){const w1=e.w[0],w3=e.w[2];return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
+function peSummary(e){const w1=e.w[0],w3=e.w[2];if(peMode(e)!=="wave")return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} · ${PROG_NAMES[peMode(e)].toLowerCase()} прогрессия`;return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
 function vProg(){
   if(!S.pe)S.pe={pg:clone(curProgram()),pick:null,q:"",m:""};
   const P=S.pe.pg;
@@ -2262,17 +2354,19 @@ function vProg(){
       <select data-in="pe" data-f="dow" data-d="${di}" aria-label="День недели">${DOW_FULL.map((n,i)=>`<option value="${i}" ${+D.dow===i?"selected":""}>${n}</option>`).join("")}</select></div>
     <input class="pe-sub" value="${esc(D.sub||"")}" data-in="pe" data-f="sub" data-d="${di}" placeholder="Мышцы, например: грудь · плечи · трицепс" aria-label="Описание дня">
     <div class="pe-list">${D.ex.map((e,ei)=>`<div class="pe-ex">
-      <div class="pe-n"><b>${esc(e.name)}</b><span>${peSummary(e)} · шаг ${fmt(e.inc)} кг</span></div>
+      <div class="pe-top"><div class="pe-n"><b>${esc(e.name)}</b><span>${peSummary(e)} · шаг ${fmt(e.inc)} кг</span></div><span class="pe-mv"><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="-1" aria-label="Выше">↑</button><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="1" aria-label="Ниже">↓</button><button class="d" data-act="pedel" data-d="${di}" data-e="${ei}" aria-label="Убрать">×</button></span></div>
       <div class="pe-ctl">
         <button class="pe-type" data-act="petype" data-d="${di}" data-e="${ei}" data-t="${e.type}">${e.type==="base"?"База":"Изоляция"}</button>
-        <label class="pe-kg">${e.type==="base"?"1ПМ":e.bw?"+кг":"Вес"}<input inputmode="decimal" value="${String(peVal(e)).replace(".",",")}" data-in="pe" data-f="kg" data-d="${di}" data-e="${ei}" placeholder="—"></label>
-        <span class="pe-mv"><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="-1" aria-label="Выше">↑</button><button data-act="pemv" data-d="${di}" data-e="${ei}" data-k="1" aria-label="Ниже">↓</button><button class="d" data-act="pedel" data-d="${di}" data-e="${ei}" aria-label="Убрать">×</button></span>
-      </div></div>`).join("")||`<div class="rir">Пока пусто — добавь упражнения.</div>`}</div>
+        <button class="pe-type pe-pm" data-act="pemode" data-d="${di}" data-e="${ei}" data-on="${e.prog?1:0}">${PROG_NAMES[peMode(e)]}</button>
+        <label class="pe-kg">${peMode(e)==="wave"?(e.type==="base"?"1ПМ":e.bw?"+кг":"Вес"):"Старт"}<input inputmode="decimal" value="${String(startKg(e)).replace(".",",")}" data-in="pe" data-f="kg" data-d="${di}" data-e="${ei}" placeholder="—"></label>
+      </div>${peMode(e)!=="wave"?`<div class="pe-rr"><label>Подходы<input inputmode="numeric" value="${e.w[0][0]}" data-in="pe" data-f="rs" data-d="${di}" data-e="${ei}"></label><label>Повт. от<input inputmode="numeric" value="${e.w[0][1]}" data-in="pe" data-f="rlo" data-d="${di}" data-e="${ei}"></label>${peMode(e)==="double"?`<label>до<input inputmode="numeric" value="${e.w[0][2]}" data-in="pe" data-f="rhi" data-d="${di}" data-e="${ei}"></label>`:""}</div>`:""}</div>`).join("")||`<div class="rir">Пока пусто — добавь упражнения.</div>`}</div>
     ${S.pe.pick===di?pePicker(di):`<button class="link" data-act="peopen" data-d="${di}" style="align-self:flex-start">+ упражнение</button>`}
     <div class="pe-dact"><button class="link" data-act="pedmv" data-d="${di}" data-k="-1">↑ выше</button><button class="link" data-act="pedmv" data-d="${di}" data-k="1">↓ ниже</button><button class="link" data-act="pedeld" data-d="${di}" style="margin-left:auto;color:#ff5a4e">Удалить день</button></div>
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
     <div style="flex:1"><h2>Моя программа ${qh("Дни, упражнения и рабочие веса. База идёт волной по процентам от 1ПМ: 63 → 72 → 84 → 89%, потом разгрузка. Для изоляции впиши вес первой недели — дальше он растёт сам. 1ПМ можно оценить: вес × (1 + повторы/30).")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
+  <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Волна — 4 недели по процентам от 1ПМ, для опытных. Двойная — работаешь в диапазоне повторов; сделал верхнюю границу во всех подходах → +шаг веса. Линейная — фиксированные повторы, получилось → +шаг каждую тренировку; два срыва подряд → −10%. Для отдельного упражнения схему можно поменять кнопкой рядом с ним.")}</div>
+    <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
   ${days}
   <button class="btn ghost" data-act="peaddd" style="margin-top:0">+ Тренировочный день</button>
   <div class="me-row"><button class="btn ghost" data-act="pecancel" style="margin:0;flex:1">Отмена</button><button class="btn" data-act="pesave" style="margin:0;flex:1">Сохранить программу</button></div>
@@ -2287,8 +2381,15 @@ function pePicker(di){const m=S.pe.m;
     <div class="me-row"><button class="link" id="pe-cust" data-act="pecust" data-d="${di}">+ своё упражнение «${esc(S.pe.q||"…")}»</button><button class="link" data-act="peclose" style="margin-left:auto">Закрыть</button></div></div>`}
 function peHandle(a,b){const P=S.pe&&S.pe.pg;if(!P)return false;const di=+b.dataset.d,ei=+b.dataset.e,D=P.days[di];
   const mv=(arr,i,k)=>{const j=i+k;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]};
-  if(a==="petype"){const e=D.ex[ei],v=peVal(e);e.type=e.type==="base"?"iso":"base";if(e.type==="iso")delete e.orm;
-    const nv=e.type==="base"?(v?Math.round(v/.63):null):(v?rnd(v*.63,e.inc):null);e.w=waveW(e.type,nv,e.inc);if(e.type==="base"&&nv)e.orm=nv;e._ed=1;render();return true}
+  if(a==="petype"){const e=D.ex[ei],m=peMode(e),v=startKg(e);e.type=e.type==="base"?"iso":"base";
+    const nv=m!=="wave"?v:e.type==="base"?(v?Math.round(v/.63):null):(v?rnd(v*.63,e.inc):null);if(m!=="wave")e.rr=RR_DEF[m][e.type].slice();rebuildW(e,nv);e._ed=1;render();return true}
+  if(a==="pemode"){const e=D.ex[ei],order=["wave","double","linear"],cur=peMode(e),nx=order[(order.indexOf(cur)+1)%3],v=startKg(e);
+    const kg=cur==="wave"&&e.type==="base"?(v?rnd(v*.72,e.inc):null):v;const glob=P.prog||"wave";if(nx===glob)delete e.prog;else e.prog=nx;delete e.rr;
+    rebuildW(e,nx==="wave"&&e.type==="base"?(kg?Math.round(kg/.72):null):kg);e._ed=1;render();return true}
+  if(a==="peglob"){const k=b.dataset.k,old=P.prog||"wave";if(k===old)return true;
+    P.days.forEach(d=>d.ex.forEach(e=>{if(e.prog)return;const v=startKg(e),kg=old==="wave"&&e.type==="base"?(v?rnd(v*.72,e.inc):null):v;delete e.rr;
+      const tmp=P.prog;P.prog=k==="wave"?undefined:k;rebuildW(e,k==="wave"&&e.type==="base"?(kg?Math.round(kg/.72):null):kg);P.prog=tmp;e._ed=1}));
+    if(k==="wave")delete P.prog;else P.prog=k;render();toast("Прогрессия: "+PROG_NAMES[k]);return true}
   if(a==="pemv"){mv(D.ex,ei,+b.dataset.k);render();return true}
   if(a==="pedel"){D.ex.splice(ei,1);render();return true}
   if(a==="pedmv"){mv(P.days,di,+b.dataset.k);render();return true}
@@ -2300,7 +2401,7 @@ function peHandle(a,b){const P=S.pe&&S.pe.pg;if(!P)return false;const di=+b.data
   if(a==="pem"){S.pe.m=b.dataset.m;render();return true}
   if(a==="peadd"||a==="pecust"){let c;if(a==="peadd")c=CATM[b.dataset.id];else{const n=(S.pe.q||"").trim();if(n.length<2){toast("Впиши название в поиск");return true}c={id:"u"+Date.now().toString(36),name:n,type:"iso",inc:2.5,eq:""}}
     let id=c.id;const all=new Set(P.days.flatMap(d=>d.ex.map(x=>x.id)));if(D.ex.some(x=>x.id===id))id=id+"_"+Date.now().toString(36).slice(-3);
-    const e={id,name:c.name,inc:c.inc||2.5,type:c.type,w:waveW(c.type,null,c.inc)};if(c.eq==="bw")e.bw=true;
+    const e={id,name:c.name,inc:c.inc||2.5,type:c.type,w:waveW(c.type,null,c.inc)};if(c.eq==="bw")e.bw=true;rebuildW(e,null);
     D.ex.push(e);S.pe.pick=null;render();toast("Добавлено — впиши "+(e.type==="base"?"1ПМ":"рабочий вес"));return true}
   if(a==="pecancel"){S.pe=null;S.view="home";render();window.scrollTo(0,0);return true}
   if(a==="pereset"){S.pe.pg=clone(DEF_PROGRAM);render();toast("Вернул исходную — нажми «Сохранить»");return true}
@@ -2315,8 +2416,11 @@ function peHandle(a,b){const P=S.pe&&S.pe.pg;if(!P)return false;const di=+b.data
 function peInput(t){const P=S.pe&&S.pe.pg;if(!P)return;const D=P.days[+t.dataset.d],f=t.dataset.f;
   if(f==="title"||f==="sub"){D[f]=t.value;return}
   if(f==="dow"){D.dow=+t.value;return}
+  if(f==="rs"||f==="rlo"||f==="rhi"){const e=D.ex[+t.dataset.e],v=parseInt(t.value,10);if(!(v>0&&v<100))return;const m=peMode(e);e.rr=e.rr||[e.w[0][0],e.w[0][1],e.w[0][2]];
+    if(f==="rs")e.rr[0]=Math.min(10,v);if(f==="rlo"){e.rr[1]=v;if(m==="linear"||e.rr[2]<v)e.rr[2]=v}if(f==="rhi")e.rr[2]=Math.max(v,e.rr[1]);rebuildW(e,startKg(e));e._ed=1;
+    const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · шаг ${fmt(e.inc)} кг`}return}
   if(f==="kg"){const e=D.ex[+t.dataset.e],v=parseFloat(String(t.value).replace(",","."));const ok=v>=0;
-    e.w=e.type==="base"?waveW("base",ok?v:null,e.inc):waveW("iso",ok?v:null,e.inc);if(e.type==="base"){if(ok&&v>0)e.orm=v;else delete e.orm}e._ed=1;
+    rebuildW(e,ok?v:null);e._ed=1;
     const n=t.closest(".pe-ex");if(n){const sp=n.querySelector(".pe-n span");if(sp)sp.textContent=`${peSummary(e)} · шаг ${fmt(e.inc)} кг`}}}
 function render(){
   hideTip();
