@@ -999,7 +999,7 @@ const SEQ=["push","pull","legs","arms"];
 const TITLES={push:"Push",pull:"Pull",legs:"Legs",legsA:"Legs A",legsB:"Legs B",arms:"Arms"};
 const WEEKS=[null,
  {name:"Объём",dates:"11–16 окт",base:"3×12–15",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:63,rest:"1,5–2 мин",kcal:"2500"},
- {name:"Гипертрофия",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:72,rest:"2 мин",kcal:"2500"},
+ {name:"Рост мышц",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:72,rest:"2 мин",kcal:"2500"},
  {name:"Сила",dates:"25–30 окт",base:"4×5–6",iso:"3×12",rir:"RIR 1",rirT:1,pct:84,rest:"3 мин",kcal:"2500"},
  {name:"Пик",dates:"1–6 ноя",base:"4×3–5",iso:"3×12",rir:"RIR 0–1",rirT:.5,pct:89,rest:"3–4 мин",kcal:"2500"},
  {name:"Разгрузка",dates:"8–13 ноя",base:"2×10",iso:"2×15",rir:"RIR 3–4",rirT:3.5,pct:45,rest:"1,5 мин",kcal:"2900–3000"}];
@@ -1104,7 +1104,7 @@ function progRec(ex,week,r,mode){
 function rec(ex,week){
   const [sets,lo,hi,planKg]=ex.w[week-1];
   const W=WEEKS[week],r={kg:planKg,reps:hi,name:ex.name,id:ex.id,hints:[]};
-  r.main={t:week===5?"deload":"plan",text:`План: ${sets}×${lo===hi?lo:lo+"–"+hi}${ex.orm&&!ex.bw?` · ${W.pct}% от 1ПМ ${fmt(ex.orm)}`:""}`};
+  r.main={t:week===5?"deload":"plan",text:`План: ${sets}×${lo===hi?lo:lo+"–"+hi}${ex.orm&&!ex.bw?` · ${W.pct}% от максимума ${fmt(ex.orm)} кг`:""}`};
   if(ex.id==="pullup"&&(week===3||week===4)){
     r.id="vrow";r.name="Вертикальная тяга (тренажёр)";
     const L3=S.sessions.find(s=>isWave(s)&&s.week===3&&(s.exercises||[]).some(e=>e.id==="vrow"));
@@ -1125,7 +1125,7 @@ function rec(ex,week){
         const o=impliedOrm(ex);let m=0,best=null;
         for(const x of work){const q=x.rir!=null&&x.rir!==""?+x.rir:(e.rir!=null&&e.rir!==""?+e.rir:tgtR);const v=e1rm(+x.kg,(+x.reps||0)+q);if(v>m){m=v;best={kg:+x.kg,reps:+x.reps,q}}}
         const ratio=Math.min(1.075,Math.max(.925,m/o));nk=Math.max(ex.inc,planKg+Math.round(planKg*(ratio-1)/ex.inc)*ex.inc);
-        why=`по ${fmt(best.kg)}×${best.reps}, RIR ${fmt(best.q)} (${dm(L.s.date)}) · 1ПМ ≈ ${fmt(Math.round(m))} вместо ${fmt(Math.round(o))}`;
+        why=`по прошлой тренировке ${dm(L.s.date)}: ${fmt(best.kg)}×${best.reps}, запас ${fmt(best.q)} — ты ${m>=o?"сильнее":"слабее"} плана`;
       }else{
         const lp=ex.w[lw-1][3],llo=ex.w[lw-1][1],lhi=ex.w[lw-1][2],top=topKg(e),minR=Math.min(...e.sets.map(x=>+x.reps||0));
         const qs=e.sets.map(x=>x.rir).filter(x=>x!=null&&x!=="").map(Number),q=qs.length?qs[qs.length-1]:(e.rir!=null&&e.rir!==""?+e.rir:null);
@@ -1207,7 +1207,7 @@ function planPreview(day,week){
     return `<div class="pp-row"><div class="pp-n"><b>${esc(r.name)}</b><span>${ex.type==="base"?"база":"изоляция"} · отдых ${fmtT(exRest(ex,week))}${r.adapt?` · <em data-t="${r.adapt>0?"up":"down"}">${r.adapt>0?"↑":"↓"} подстроено</em>`:""}</span></div>
       <div class="pp-v num"><b>${kg}</b><span>${n} × ${lo==null?"макс":lo===hi?lo:lo+"–"+hi}</span></div></div>`}).join("");
   const sets=PLAN[day].ex.reduce((a,ex)=>a+ex.w[week-1][0],0);
-  return `<div class="pp-sum"><span><b>${sets}</b> подходов</span><span><b>${W.pct}%</b> от 1ПМ</span><span><b>${fmtT(rb)}</b> / <b>${fmtT(ri)}</b> отдых</span></div><div class="pp">${rows}</div>`;
+  return `<div class="pp-sum"><span><b>${sets}</b> подходов</span><span><b>${W.pct}%</b> от максимума</span><span><b>${fmtT(rb)}</b> / <b>${fmtT(ri)}</b> отдых</span></div><div class="pp">${rows}</div>`;
 }
 function vCalendar(){
   if(!S.calMonth)S.calMonth=today().slice(0,7);
@@ -1347,7 +1347,7 @@ function swapEx(ei,key){
     else if(a[2]!=null&&base!=null){const f=e.orig.id==="vrow"&&key==="pulldown"?1:a[2];kg=Math.max(a[3],roundTo((ex.bw&&e.orig.id===ex.id?BW_KG+base:base)*f,a[3]));}
     const [,lo,hi]=ex.w[D.week-1];
     e.id=nid;e.name=a[1];e.inc=a[3];
-    e.rec={kg,reps:hi,id:nid,name:a[1],main:{t:"hold",text:L?`Замена · прошлый раз ${fmt(kg)} кг`:kg==null?"Замена · подбери вес на первом подходе по RIR":`Замена · ориентир ~${fmt(kg)} кг, уточни по RIR первого подхода`},hints:[]};
+    e.rec={kg,reps:hi,id:nid,name:a[1],main:{t:"hold",text:L?`Замена · прошлый раз ${fmt(kg)} кг`:kg==null?"Замена · подбери вес на первом подходе":`Замена · примерно ${fmt(kg)} кг, уточни после первого подхода`},hints:[]};
     e.wu=warmupFor(ex,D.week,kg,nid);
   }
   e.sets.forEach(s=>{if(!s.done){s.kg="";s.auto=false}});
@@ -1368,41 +1368,41 @@ function advise(D,ei){
   const bw=ex.bw&&e.id===ex.id,inc=e.inc||ex.inc,deload=D.week===5,isLast=s.i>=e.sets.length-1;
   const K=v=>bw?(v?`+${fmt(v)} кг`:"свой вес"):`${fmt(v)} кг`;
   const tR=lo==null?null:Math.round((lo+hi)/2),rt=(a+b)/2;
-  if(lo==null) return {t:"ok",title:"Тест",text:`Записано ${r} повт. Оставь ${K(kg)} и делай до технического отказа.`,kg,isLast};
+  if(lo==null) return {t:"ok",title:"Тест",text:`Записано ${r} повт. Оставь ${K(kg)} и делай, пока получается чисто.`,kg,isLast};
   const easy=q!=null&&q>b,hard=q!=null&&q<a;
   let dir=0,t="ok",title="Оставь вес",text;
   if(r<lo){
     if(easy){text=`Запас ${q} — дело не в весе. Оставь ${K(kg)} и добери до ${lo}+ повт.`;t="warn";title="Добирай повторы"}
-    else{dir=-1;text=`${r} повт. — ниже диапазона ${rng(lo,hi)}${q!=null?` при RIR ${q}`:""}. Вес тяжёлый.`}
+    else{dir=-1;text=`${r} повт. — ниже диапазона ${rng(lo,hi)}${q!=null?`, запас ${q}`:""}. Вес тяжёлый.`}
   }else if(r>hi){
-    if(hard){text=`Повторов больше плана, но почти до отказа (RIR ${q}). Оставь ${K(kg)} и остановись на ${hi}.`;t="warn";title="Не дожимай"}
+    if(hard){text=`Повторов больше плана, но сил почти не осталось (запас ${q}). Оставь ${K(kg)} и остановись на ${hi}.`;t="warn";title="Не дожимай"}
     else{dir=1;text=`${r} повт. — выше диапазона ${rng(lo,hi)}${q!=null?` и запас ${q}`:""}. Вес лёгкий.`}
   }else if(q==null){
-    text=`${r} повт. в диапазоне — оставь ${K(kg)}. Отметь RIR, и подсказка станет точнее.`;
+    text=`${r} повт. в диапазоне — оставь ${K(kg)}. Отметь запас (RIR) — подсказка станет точнее.`;
   }else if(easy){
-    if(r>=hi||q-b>=2){dir=1;text=`Запас ${q} при цели ${rng(a,b)} — вес лёгкий.`}
-    else{text=`Запас ${q} чуть больше цели ${rng(a,b)}. Оставь ${K(kg)}, сделай ${Math.min(hi,r+(q-b))} повт.`;title="Больше повторов"}
+    if(r>=hi||q-b>=2){dir=1;text=`Запас ${q}, а нужно ${rng(a,b)} — вес лёгкий.`}
+    else{text=`Запас ${q} — чуть больше нужного (${rng(a,b)}). Оставь ${K(kg)}, сделай ${Math.min(hi,r+(q-b))} повт.`;title="Больше повторов"}
   }else if(hard){
-    if(a-q>=2||(q===0&&a>=1)){dir=-1;text=`Отказ (RIR ${q}) при цели ${rng(a,b)} — следующий подход так не вытянешь.`}
-    else{text=`Чуть ближе к отказу, чем нужно (цель ${rng(a,b)}). Оставь ${K(kg)}, остановись раньше — ожидай ${Math.max(lo,r-1)} повт.`;t="warn";title="Остановись раньше"}
+    if(a-q>=2||(q===0&&a>=1)){dir=-1;text=`Сил почти не осталось (запас ${q}, нужно ${rng(a,b)}) — следующий подход так не вытянешь.`}
+    else{text=`Чуть тяжелее, чем нужно (нужен запас ${rng(a,b)}). Оставь ${K(kg)}, остановись раньше — ожидай ${Math.max(lo,r-1)} повт.`;t="warn";title="Остановись раньше"}
   }else{
-    text=`По плану: ${r} повт. с RIR ${q}. Оставь ${K(kg)}, ожидай ${Math.max(lo,r-1)}–${r} повт. — усталость копится.`;title="Всё по плану"
+    text=`По плану: ${r} повт., запас ${q}. Оставь ${K(kg)}, ожидай ${Math.max(lo,r-1)}–${r} повт. — усталость копится.`;title="Всё по плану"
   }
-  if(deload&&dir>0){dir=0;t="ok";title="Разгрузка";text=`Легко — так и задумано. На разгрузке вес не поднимаем: оставь ${K(kg)}.`}
+  if(deload&&dir>0){dir=0;t="ok";title="Разгрузка";text=`Легко — так и задумано. На лёгкой неделе вес не поднимаем: оставь ${K(kg)}.`}
   let nk=kg;
   if(dir!==0){
-    if(bw){ if(dir<0&&kg===0){dir=0;t="warn";title="Свой вес";text=`${r} повт.${q!=null?` при RIR ${q}`:""} — ниже диапазона ${rng(lo,hi)}. Дальше свой вес, сколько выйдет с запасом ${rng(a,b)}, без раскачки и без отказа.`} else nk=Math.max(0,kg+dir*inc) }
+    if(bw){ if(dir<0&&kg===0){dir=0;t="warn";title="Свой вес";text=`${r} повт.${q!=null?`, запас ${q}`:""} — меньше плана ${rng(lo,hi)}. Дальше без доп. веса, сколько получится чисто, без раскачки.`} else nk=Math.max(0,kg+dir*inc) }
     else{
       const e1=kg*(1+(r+(q??rt))/30),raw=e1/(1+(tR+rt+1)/30);let n=kg+Math.round((raw-kg)/inc)*inc;
       const cap=Math.max(1,Math.floor(kg*.15/inc))*inc;
       n=dir>0?Math.min(Math.max(n,kg+inc),kg+cap):Math.max(Math.min(n,kg-inc),kg-cap);
       nk=Math.max(0,n);
     }
-    if(ex.max&&e.id===ex.id&&nk>ex.max){nk=ex.max;if(kg>=ex.max&&dir>0){dir=0;t="up";title="Стек на максимуме";text=`${r} повт. — вес ${K(kg)} уже предельный. В следующем подходе +1–2 повтора, негатив 3 с или пауза 1 с в сокращении.`}}
-    if(dir!==0){t=dir>0?"up":"down";title=dir>0?`Добавь до ${K(nk)}`:`Сними до ${K(nk)}`;text+=` Поставь ${K(nk)} и целься в ${rng(lo,hi)} повт. с RIR ${rng(a,b)}.`}
+    if(ex.max&&e.id===ex.id&&nk>ex.max){nk=ex.max;if(kg>=ex.max&&dir>0){dir=0;t="up";title="Стек на максимуме";text=`${r} повт. — вес ${K(kg)} уже предельный. В следующем подходе +1–2 повтора, опускай медленно (3 секунды) или задержись на секунду в верхней точке.`}}
+    if(dir!==0){t=dir>0?"up":"down";title=dir>0?`Добавь до ${K(nk)}`:`Сними до ${K(nk)}`;text+=` Поставь ${K(nk)}: ${rng(lo,hi)} повт., запас ${rng(a,b)}.`}
   }
   if(isLast){title=`На следующую тренировку: ${title.charAt(0).toLowerCase()+title.slice(1)}`;
-    text=text.replace(/,? ?ожидай .*?копится\./,".").replace(/,? ?ожидай [^.]*\./,".").replace(/\s+\./g,".")+" Это был последний подход — ориентир на следующий раз.";}
+    text=text.replace(/,? ?ожидай .*?копится\./,".").replace(/,? ?ожидай [^.]*\./,".").replace(/\s+\./g,".")+" Это был последний подход — подсказка на следующую тренировку.";}
   return {t,title,text,kg:nk,isLast};
 }
 function advHTML(ei){
@@ -1446,10 +1446,10 @@ function restEval(v,target){if(v==null)return "";const d=v-target;return d>30?`<
 function summaryText(s){
   const st=statsOf(s),p=prevSame(s),W=isWave(s)?WEEKS[s.week]:null,pt=p?statsOf(p).tonnage:0;
   const L=[`${TITLES[s.day]||s.day} · неделя ${s.week}${W?" ("+W.name+")":""} · ${dm(s.date)}`,
-    `Тоннаж ${st.tonnage.toLocaleString("ru-RU")} кг${pt?` (${st.tonnage>=pt?"+":""}${Math.round((st.tonnage/pt-1)*100)}% к прошлой)`:""}`,
+    `Поднято ${st.tonnage.toLocaleString("ru-RU")} кг${pt?` (${st.tonnage>=pt?"+":""}${Math.round((st.tonnage/pt-1)*100)}% к прошлой)`:""}`,
     `Подходов ${st.sets} · повторов ${st.reps}${st.durationMin?` · ${st.durationMin} мин`:""}`];
   if(st.restBase!=null||st.restIso!=null)L.push(`Отдых ≈ ${st.restBase!=null?fmtT(st.restBase)+" база":""}${st.restBase!=null&&st.restIso!=null?" / ":""}${st.restIso!=null?fmtT(st.restIso)+" изоляция":""}`);
-  st.prs.forEach(r=>L.push(`PR: ${r.name} ${fmt(r.kg)}×${r.reps} (1ПМ ≈ ${fmt(r.e1rm)})`));
+  st.prs.forEach(r=>L.push(`Рекорд: ${r.name} ${fmt(r.kg)}×${r.reps} (максимум на 1 раз ≈ ${fmt(r.e1rm)} кг)`));
   return L.join("\n");
 }
 function vSummary(){
@@ -1461,23 +1461,23 @@ function vSummary(){
     return `<tr><td>${esc(e.name)}<div class="sub num">${setsText(e)}</div></td><td class="r num">${t?Math.round(t).toLocaleString("ru-RU"):"—"}</td></tr>`}).join("");
   return `
   <div class="wk-head"><button class="back" data-act="tab" data-v="${S.summaryFrom||"home"}" aria-label="Назад">←</button>
-    <div style="flex:1"><h2>Итог · ${esc(TITLES[s.day]||s.day)} ${qh("Отдых считается между рабочими подходами одного упражнения: время между отметками ✓ минус ~40 с на сам подход. Разминка и переходы не входят, паузы дольше 15 минут не учитываются. Рекорд — лучший расчётный 1ПМ по формуле Эпли за всю историю упражнения.")}</h2><div class="rir">${dm(s.date)}.${s.date.slice(0,4)} · неделя ${s.week}${W?" · "+W.name:""}</div></div></div>
+    <div style="flex:1"><h2>Итог · ${esc(TITLES[s.day]||s.day)} ${qh("Отдых — время между подходами одного упражнения (разминка не считается).\n\nРекорд (PR) — ты стал сильнее в этом упражнении, чем когда-либо раньше. Считается по весу и повторам вместе: 100 кг × 8 — это сильнее, чем 100 кг × 6.")}</h2><div class="rir">${dm(s.date)}.${s.date.slice(0,4)} · неделя ${s.week}${W?" · "+W.name:""}</div></div></div>
   <section class="card sum-hero">
-    <div class="eyebrow">Общий тоннаж</div>
+    <div class="eyebrow">Поднято за тренировку</div>
     <div class="big num">${big(st.tonnage)} <small>кг</small></div>
-    ${dl!=null?`<span class="delta" data-t="${dl>=0?"up":"down"}">${dl>=0?"+":""}${dl}% к прошлой (${dm(p.date)}, ${pt.toLocaleString("ru-RU")} кг)</span>`:`<span class="delta">Первая такая тренировка — будет база для сравнения</span>`}
+    ${dl!=null?`<span class="delta" data-t="${dl>=0?"up":"down"}">${dl>=0?"+":""}${dl}% к прошлой (${dm(p.date)}, ${pt.toLocaleString("ru-RU")} кг)</span>`:`<span class="delta">Первая такая тренировка — дальше будет с чем сравнить</span>`}
     ${s.readiness?`<span class="delta">Готовность ${s.readiness.score}%${s.readiness.adj?" · база облегчена":""}</span>`:""}
   </section>
   <section class="tiles">
     <div><b>${st.sets}</b><span>рабочих подходов</span></div>
     <div><b>${st.reps}</b><span>повторений</span></div>
     <div><b>${st.durationMin?st.durationMin+" мин":"—"}</b><span>${s.startedAt?"время тренировки":"от первого до последнего подхода"}</span></div>
-    <div><b>${st.rirAvg!=null?st.rirAvg:"—"}</b><span>средний RIR${W?` · цель ${W.rir.replace("RIR ","")}`:""}</span></div>
-    <div><b>${st.restBase!=null?fmtT(st.restBase):"—"}</b><span>средний отдых · база</span>${isWave(s)?restEval(st.restBase,restFor(s.week,"base")):""}</div>
-    <div><b>${st.restIso!=null?fmtT(st.restIso):"—"}</b><span>средний отдых · изоляция</span>${isWave(s)?restEval(st.restIso,restFor(s.week,"iso")):""}</div>
+    <div><b>${st.rirAvg!=null?st.rirAvg:"—"}</b><span>средний запас (RIR)${W?` · нужно ${W.rir.replace("RIR ","")}`:""}</span></div>
+    <div><b>${st.restBase!=null?fmtT(st.restBase):"—"}</b><span>отдых · тяжёлые упражнения</span>${isWave(s)?restEval(st.restBase,restFor(s.week,"base")):""}</div>
+    <div><b>${st.restIso!=null?fmtT(st.restIso):"—"}</b><span>отдых · остальные</span>${isWave(s)?restEval(st.restIso,restFor(s.week,"iso")):""}</div>
   </section>
-  ${st.prs.length?`<section class="card prs"><div class="eyebrow">Рекорды · расчётный 1ПМ</div>${st.prs.map(r=>`<div class="pr"><span class="medal">PR</span><span>${esc(r.name)} — <b class="num">${fmt(r.kg)} × ${r.reps}</b><span class="rir"> · 1ПМ ≈ ${fmt(r.e1rm)} (было ${fmt(r.prev)})</span></span></div>`).join("")}</section>`:""}
-  <section class="card"><div style="overflow-x:auto"><table class="extab"><thead><tr><th>Упражнение</th><th class="r">Тоннаж, кг</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+  ${st.prs.length?`<section class="card prs"><div class="eyebrow">Рекорды</div>${st.prs.map(r=>`<div class="pr"><span class="medal">PR</span><span>${esc(r.name)} — <b class="num">${fmt(r.kg)} × ${r.reps}</b><span class="rir"> · максимум на 1 раз ≈ ${fmt(r.e1rm)} кг (было ${fmt(r.prev)})</span></span></div>`).join("")}</section>`:""}
+  <section class="card"><div style="overflow-x:auto"><table class="extab"><thead><tr><th>Упражнение</th><th class="r">Поднято, кг</th></tr></thead><tbody>${rows}</tbody></table></div></section>
 
   <button class="btn" data-act="tab" data-v="story" style="margin-top:0">Карточка для сторис</button>
   <button class="btn ghost" data-act="coachrep" style="margin-top:0">Отчёт для тренера</button>
@@ -1488,24 +1488,24 @@ function vSummary(){
 const RQ=[{k:"sleep",q:"Сон",lo:"плохо, <6 ч",hi:"отлично, 8+ ч"},{k:"energy",q:"Энергия",lo:"нет сил",hi:"полон сил"},{k:"mood",q:"Настрой",lo:"не хочется",hi:"рвусь в бой"},
   {k:"stress",q:"Стресс",lo:"очень высокий",hi:"спокоен"},{k:"soreness",q:"Мышцы и суставы",lo:"всё болит",hi:"свежий"}];
 function readyScore(r){const v=RQ.map(q=>r[q.k]).filter(x=>x!=null);if(v.length<RQ.length)return null;return Math.round(v.reduce((a,b)=>a+b,0)/(RQ.length*5)*100)}
-function readyZone(p){return p==null?null:p>=72?{z:"green",c:"var(--up)",t:"Готов к работе",d:"Работаем по плану."}:p>=52?{z:"yellow",c:"var(--hold)",t:"Средне",d:"Работаем по плану, но смотри на RIR первого рабочего подхода: если тяжелее цели, подсказка снизит вес."}:{z:"red",c:"var(--warn)",t:"Восстановление просело",d:"Рекомендую облегчить базу: −1 рабочий подход и −5% веса. Изоляция по плану."}}
+function readyZone(p){return p==null?null:p>=72?{z:"green",c:"var(--up)",t:"Готов к работе",d:"Работаем по плану."}:p>=52?{z:"yellow",c:"var(--hold)",t:"Средне",d:"Работаем по плану. Если первый подход пойдёт тяжелее обычного — трекер подскажет снизить вес."}:{z:"red",c:"var(--warn)",t:"Организм устал",d:"Сегодня лучше полегче: в тяжёлых упражнениях на 1 подход меньше и вес чуть ниже (−5%)."}}
 function readyNotes(r){const n=[];
-  if(r.sleep===1)n.push("Сильный недосып повышает субъективную тяжесть и снижает силовые — сегодня без PR.");
-  if(r.soreness===1)n.push("Если болит сустав, а не мышца (крепатура), — замени упражнение или пропусти его. Острая боль — повод остановиться.");
-  if(r.stress===1&&r.sleep<=2)n.push("Высокий стресс + плохой сон — классический сценарий, когда лучше короткая тренировка, чем полная.");
+  if(r.sleep===1)n.push("Мало спал — веса покажутся тяжелее, чем обычно. Сегодня без рекордов.");
+  if(r.soreness===1)n.push("Если болит сустав, а не мышца после прошлой тренировки, — замени упражнение или пропусти его. Резкая боль — сразу остановись.");
+  if(r.stress===1&&r.sleep<=2)n.push("Стресс и плохой сон — сегодня лучше короткая тренировка, чем никакой.");
   return n}
 function vReady(){
   const R=S.ready,p=readyScore(R.ans),z=readyZone(p),P=PLAN[R.day];
   return `
   <section class="wk-hero">
     <div class="wk-head"><button class="back" data-act="home" aria-label="Назад">←</button>
-      <div><div class="eyebrow">Чек готовности · 30 секунд</div><h2 style="margin-top:4px">${esc(P.title)} · неделя ${R.week} ${qh("Оцени, как ты сегодня: 5 — лучше всего. По ответам трекер подскажет, тренироваться по плану или облегчить.")}</h2></div></div>
+      <div><div class="eyebrow">Чек готовности · 30 секунд</div><h2 style="margin-top:4px">${esc(P.title)} · неделя ${R.week} ${qh("Оцени, как ты сегодня: 1 — плохо, 5 — отлично. Если день тяжёлый, трекер предложит тренировку полегче.")}</h2></div></div>
   </section>
   <section class="card">${RQ.map(q=>`<div class="rq"><div class="rq-top"><b>${q.q}</b><span>${R.ans[q.k]!=null?["","плохо","ниже нормы","нормально","хорошо","отлично"][R.ans[q.k]]:""}</span></div>
     <div class="rq-scale">${[1,2,3,4,5].map(n=>`<button data-act="rq" data-k="${q.k}" data-v="${n}" aria-pressed="${R.ans[q.k]===n}" aria-label="${q.q}: ${n}">${n}</button>`).join("")}</div>
     <div class="rq-ends"><span>${q.lo}</span><span>${q.hi}</span></div></div>`).join("")}</section>
   ${z?`<section class="card zone" style="--zc:${z.c};--p:${p}"><div class="ring"><span>${p}%</span></div><div><b style="color:${z.c}">${z.t}</b><p>${z.d}</p>${readyNotes(R.ans).map(n=>`<p>• ${esc(n)}</p>`).join("")}</div></section>
-    ${z.z!=="green"?`<button class="toggle" data-act="rqadj" aria-pressed="${!!R.adj}"><i></i>Облегчить базу: −1 подход, −5% веса</button>`:""}`:""}
+    ${z.z!=="green"?`<button class="toggle" data-act="rqadj" aria-pressed="${!!R.adj}"><i></i>Сделать полегче: −1 подход, −5% веса</button>`:""}`:""}
   <button class="btn" data-act="rqgo" style="margin-top:0">${z?"Начать тренировку":"Ответь на все 5 или пропусти"}</button>
   <button class="link" data-act="rqskip" style="align-self:center">Пропустить чек</button>`;
 }
@@ -1573,11 +1573,11 @@ function vNext(){
     <div class="ncw">${r.nw.map((k,i)=>`<span>${k==null?(i===2?"тест":"+5–7,5"):r.ex.bw&&!k?"СВ":fmt(k)}<em>Н${i+1}</em></span>`).join("")}</div>
     <div class="src">${esc(r.src)}</div></div>`).join("")}</div></div>`}).join("");
   const base=SEQ.flatMap(d=>N.rows[d].filter(r=>!r.iso));
-  const top=`<section class="card"><div class="eyebrow" style="margin-bottom:10px">1ПМ базовых упражнений</div><div class="nc-top">${base.map(r=>`<span>${esc(r.ex.name)}</span><b style="color:${r.t==="up"?"var(--up)":r.t==="down"?"var(--hold)":"var(--muted)"}">${fmt(r.o)} → ${fmt(r.n)}</b>`).join("")}</div></section>`;
+  const top=`<section class="card"><div class="eyebrow" style="margin-bottom:10px">Максимум на 1 раз (1ПМ) — тяжёлые упражнения</div><div class="nc-top">${base.map(r=>`<span>${esc(r.ex.name)}</span><b style="color:${r.t==="up"?"var(--up)":r.t==="down"?"var(--hold)":"var(--muted)"}">${fmt(r.o)} → ${fmt(r.n)}</b>`).join("")}</div></section>`;
   return `
   <section class="wk-hero nc-hero">
     <div class="wk-head"><button class="back" data-act="tab" data-v="home" aria-label="Назад">←</button>
-      <div><div class="eyebrow">Цикл ${CYCLE.n} → ${CYCLE.n+1}</div><h2 style="margin-top:4px">Следующий цикл ${qh("База: 1ПМ из твоих логов (вес × повторы + RIR, формула Эпли) × % недели (63 / 72 / 84 / 89 / 45). Изоляция: +шаг, если закрывал план. Рост 1ПМ ограничен +7,5% за цикл, падение −10%. Подходы без RIR считаются как до отказа. Учитываются недели 1–4, разгрузка нет.")}</h2></div></div>
+      <div><div class="eyebrow">Цикл ${CYCLE.n} → ${CYCLE.n+1}</div><h2 style="margin-top:4px">Следующий цикл ${qh("Трекер смотрит, какие веса и повторы ты делал в этом цикле, и считает новые веса на следующий.\n\nБазовые упражнения: стал сильнее — веса вырастут, но не больше чем на 7,5%, чтобы не перегрузиться.\n\nОстальные: справлялся с планом — прибавка, нет — тот же вес.")}</h2></div></div>
     <div class="date-row"><label for="nc-start">Старт (воскресенье)</label><input id="nc-start" type="date" value="${start}" data-in="ncstart"></div>
   </section>
   ${!done?`<div class="nc-info">Цикл ${CYCLE.n} ещё идёт · расчёт по ${logged} из ${SEQ.length*4} тренировок ${qh("Цикл "+CYCLE.n+" идёт до "+dm(CYCLE.end)+". Расчёт уточняется с каждой тренировкой и станет точным к концу 4-й недели.")}</div>`:""}
@@ -1634,10 +1634,10 @@ function wStats(){
   return {E,cur,prev,ch,pct,ok,last:E[E.length-1],total:trendNow-firstTrend,since:first.date};
 }
 function wVerdict(pct){if(pct==null)return null;
-  if(pct<=-1.05)return {t:"warn",txt:"Слишком быстро: больше 1% в неделю — растёт риск потери мышц и падения силы. Стоит добавить ~150–200 ккал."};
-  if(pct<=-0.4)return {t:"up",txt:"В целевом темпе: 0,5–1% веса в неделю — жир уходит, мышцы сохраняются."};
-  if(pct<-0.1)return {t:"hold",txt:"Медленно. Если так 2 недели подряд — срезать ~150 ккал или добавить шагов."};
-  return {t:"hold",txt:"Вес стоит или растёт. Проверь точность подсчёта калорий; если 2 недели без движения — дефицит −150–200 ккал."}}
+  if(pct<=-1.05)return {t:"warn",txt:"Слишком быстро: можно потерять мышцы и силу. Добавь в день ~150–200 ккал (например, кусок хлеба с арахисовой пастой)."};
+  if(pct<=-0.4)return {t:"up",txt:"Отличный темп: уходит жир, а мышцы остаются."};
+  if(pct<-0.1)return {t:"hold",txt:"Медленно. Если так 2 недели подряд — ешь на ~150 ккал меньше или ходи больше."};
+  return {t:"hold",txt:"Вес стоит или растёт. Проверь, всё ли записываешь. Если так 2 недели — ешь на 150–200 ккал меньше."}}
 const kgF=v=>v==null?"—":(Math.round(v*10)/10).toFixed(1).replace(".",",");
 const sgn=v=>v>0?"+":v<0?"−":"±";
 function wChart(E,days){
@@ -1666,7 +1666,7 @@ function weightCard(sel){
   const vt=v?v.t:"hold",up=S2.ch>0;
   return `<section class="card w-card dt" data-open="${S.dt.weight?1:0}">
     <div class="dt-sum w-head" role="button" tabindex="0" data-act="dt" data-k="weight" aria-label="Вес: показать или скрыть">
-    <div class="w-top"><div><div class="eyebrow">Вес ${qh("Крупная цифра — среднее за 7 дней, оно сглаживает скачки воды. Взвешивайся утром, после туалета, до еды и воды — так колебания меньше. Темп оценивается по среднему за 7 дней: нужно хотя бы 3 взвешивания на этой и прошлой неделе. Цель на сушке — 0,5–1% веса в неделю.")}</div><div class="w-big num">${S2.cur?kgF(S2.cur.avg):kgF(S2.last&&S2.last.w)}<small> кг</small></div></div>
+    <div class="w-top"><div><div class="eyebrow">Вес ${qh("Большая цифра — средний вес за неделю. Вес каждый день прыгает из-за воды и еды, а средний показывает, куда он реально идёт.\n\nВзвешивайся утром: после туалета, до еды и воды.\n\nНа сушке хорошо терять 0,5–1% веса в неделю (при 80 кг — это 0,4–0,8 кг).")}</div><div class="w-big num">${S2.cur?kgF(S2.cur.avg):kgF(S2.last&&S2.last.w)}<small> кг</small></div></div>
       ${S2.ch!=null?`<button class="w-chg" data-t="${vt}" ${v?`data-act="qh" data-tip="${esc(v.txt)}"`:""} aria-label="Изменение за неделю"><b>${S2.ch===0?"→":up?"↑":"↓"} ${sgn(S2.ch)}${kgF(Math.abs(S2.ch))} кг</b><small>${sgn(S2.pct)}${(Math.abs(S2.pct)).toFixed(1).replace(".",",")}% / нед</small>${v?`<span class="qh" aria-hidden="true">?</span>`:""}</button>`:""}</div>
     <div class="ml-dots w-foot"><span class="w-today">${cur?`${sel===today()?"Сегодня":dm(sel)}: <b>${kgF(cur)} кг</b>`:`${sel===today()?"Сегодня":dm(sel)}: не записан`}</span><span class="ml-chev nx-hint">${S.dt.weight?"Скрыть":"Показать"}</span></div>
     </div><div class="dt-body w-body">
@@ -1696,23 +1696,23 @@ function calcCompute(c){
   pal+=c.job==="stand"?.05:c.job==="phys"?.15:0;pal+=Math.min(6,+c.train||0)*.025;
   const tdee=bmr*pal,bmi=w/((h/100)**2);
   const rate={soft:.5,std:.75,fast:1}[c.pace]||.75;let kcal,note=[];
-  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.25;if(def>cap){def=cap;note.push("Дефицит ограничен 25% от расхода — сильнее режет мышцы и гормоны.")}kcal=tdee-def}
+  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.25;if(def>cap){def=cap;note.push("Больше урезать нельзя — пострадают мышцы и самочувствие.")}kcal=tdee-def}
   else if(c.goal==="recomp")kcal=tdee*.9;else if(c.goal==="keep")kcal=tdee;else kcal=tdee*1.08;
   const minK=c.sex==="m"?1500:1200;if(kcal<minK){kcal=minK;note.push(`Ниже ${minK} ккал опускаться не стоит — поставил минимум.`)}
-  if(kcal<bmr&&c.goal==="cut")note.push("Калории ниже базового обмена — держи такой режим не дольше 4–6 недель, затем неделя на поддержке.");
-  if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("ИМТ ниже 18,5 — сушка не рекомендуется. Лучше поддержание или набор.");
-  if(bf&&bf<(c.sex==="m"?12:20)&&c.goal==="cut"&&c.pace!=="soft")note.push("Процент жира уже низкий — безопаснее мягкий темп 0,5% в неделю.");
+  if(kcal<bmr&&c.goal==="cut")note.push("Калорий очень мало. Держи так не дольше 4–6 недель, потом неделю ешь больше.");
+  if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("У тебя и так мало веса — худеть не стоит. Лучше держать вес или набирать.");
+  if(bf&&bf<(c.sex==="m"?12:20)&&c.goal==="cut"&&c.pace!=="soft")note.push("Жира уже мало — безопаснее худеть медленно.");
   // белок: на дефиците выше; при высоком % жира считаем от сухой массы
   const pK=c.goal==="cut"?2.2:c.goal==="recomp"?2.0:1.8,base=(lbm&&bf>(c.sex==="m"?25:32))?lbm*1.25:w;
   const p=Math.round(base*pK/5)*5;let f=Math.round(Math.max(w*.8,kcal*.25/9)/5)*5;
-  let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — тренировки на 3–6 повторов пострадают.")}
+  let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
   kcal=Math.round((p*4+f*9+carb*4)/10)*10;
   return {bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
     perWeek:c.goal==="cut"?Math.round((tdee-kcal)*7/7700*100)/100:c.goal==="gain"?Math.round((kcal-tdee)*7/7700*100)/100:0}}
 function calcResHTML(){const c=S.calc,r=calcCompute(c);
   if(!r)return `<div class="w-empty">Заполни возраст, рост и вес — расчёт появится здесь.</div>`;
   const cur=foodTarget(today());
-  return `<div class="cr-top"><div><div class="eyebrow">Норма на день ${qh("Это стартовая точка: формулы ошибаются на ±10%. Через 2 недели сверь с «расчётной поддержкой» по реальному весу и поправь.")}</div><div class="w-big num">${big(r.kcal)}<small> ккал</small></div></div>
+  return `<div class="cr-top"><div><div class="eyebrow">Норма на день ${qh("Это примерная цифра, у каждого организм свой. Поживи с ней 2 недели и посмотри на вес — трекер подскажет, если нужно поправить.")}</div><div class="w-big num">${big(r.kcal)}<small> ккал</small></div></div>
     <div class="w-delta" data-t="up"><b class="num">${c.goal==="cut"?"−"+String(r.perWeek).replace(".",",")+" кг":c.goal==="gain"?"+"+String(r.perWeek).replace(".",",")+" кг":"≈ 0 кг"}</b><span>в неделю</span></div></div>
   <div class="cr-mac"><div><b class="num">${r.p}</b><span>белок, г</span><em>${String(Math.round(r.p/parseFloat(String(c.weight).replace(",","."))*10)/10).replace(".",",")} г/кг</em></div><div><b class="num">${r.f}</b><span>жиры, г</span><em>${Math.round(r.f*9/r.kcal*100)}% ккал</em></div><div><b class="num">${r.c}</b><span>углеводы, г</span><em>${Math.round(r.c*4/r.kcal*100)}% ккал</em></div></div>
   <div class="w-weeks"><div class="w-row"><span>Базовый обмен${r.lbm?" (Кэтч-МакАрдл, по сухой массе)":" (Миффлин-Сан Жеор)"}</span><span class="num">${big(r.bmr)}</span><span>ккал</span></div>
@@ -1728,7 +1728,7 @@ function vCalc(){
   const inp=(k,l,ph,mode="numeric")=>`<label class="cf" for="c-${k}"><span>${l}</span><input id="c-${k}" inputmode="${mode}" value="${esc(c[k])}" placeholder="${ph}" data-in="calc" data-k="${k}"></label>`;
   return `<section class="wk-hero"><div class="wk-head"><button class="back" data-act="tab" data-v="activity" aria-label="Назад">←</button>
     <div><div class="eyebrow">Калькулятор</div><h2 style="margin-top:4px">Норма калорий и БЖУ</h2></div></div></section>
-  <section class="card cq"><div class="eyebrow">1 · О тебе ${qh("Вес подставлен из трекера (среднее за 7 дней). % жира можно не указывать — если знаешь его, расчёт точнее.")}</div>${seg("sex",[["m","Мужчина"],["f","Женщина"]])}
+  <section class="card cq"><div class="eyebrow">1 · О тебе ${qh("Вес взят из трекера. Процент жира можно не указывать.")}</div>${seg("sex",[["m","Мужчина"],["f","Женщина"]])}
     <div class="cf-grid">${inp("age","Возраст","22")}${inp("height","Рост, см","180")}${inp("weight","Вес, кг","80","decimal")}${inp("bf","% жира","необяз.","decimal")}</div>
 </section>
   <section class="card cq"><div class="eyebrow">2 · Активность</div>
@@ -1802,7 +1802,7 @@ function meRefresh(){const E=S.mEdit;if(!E)return;
 function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(E.orig);
   const opts=sel=>Object.entries(FD).map(([k,F])=>`<option value="${k}" ${k===sel?"selected":""}>${esc(F.s||F.n)}</option>`).join("")+`<option value="__new">+ Свой продукт…</option>`;
   return `<div class="me">
-    <div class="me-tot"><div class="eyebrow">Приёмы на ${E.date===today()?"сегодня":dm(E.date)} ${qh("Крупы и макароны — сухой вес, курица и картошка — сырой. Овощи без граммовки не считаются — впиши граммы, если хочешь учитывать. При замене продукта количество подбирается под те же калории. На разгрузке к рису и кускусу автоматически добавляется +60 / +50 г.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div>${goalLine(T)}</div>
+    <div class="me-tot"><div class="eyebrow">Приёмы на ${E.date===today()?"сегодня":dm(E.date)} ${qh("Крупы и макароны взвешивай сухими, мясо и картошку — сырыми. Овощи без граммов не считаются.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div>${goalLine(T)}</div>
     ${E.plan.map((m,mi)=>{const v=mealVal(m),o=E.orig.find(x=>x.id===m.id);return `<div class="me-meal">
       <div class="me-mh"><span class="ml-l">${mealLbl(E.plan,mi)}</span><button class="pin-t" data-act="mepin" data-m="${mi}" aria-pressed="${!!m.pin}">${PINI}${m.pin?"Каждый день":"Только сегодня"}</button><button class="link" data-act="medelm" data-m="${mi}">Удалить</button></div>
       <input class="me-name" id="me-n-${mi}" value="${esc(m.name)}" data-in="me" data-f="name" data-m="${mi}" aria-label="Название приёма" placeholder="Название">
@@ -1893,7 +1893,7 @@ function goalNums(d){const T=foodTarget(d),mid=v=>Array.isArray(v)?Math.round((v
 function goalLine(T){const G=goalNums(S.mEdit&&S.mEdit.date||today()),d=T.k-G.k;
   return `<div id="me-goal" class="me-goal">Цель ${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c} — ${Math.abs(d)<=50?`<b data-s="ok">в цели</b>`:d>0?`<b data-s="up">план больше на ${dsg(d).replace("+","")}</b>`:`<b data-s="down">план меньше на ${Math.abs(d)}</b>`}</div>`}
 function goalBlock(sel){const ct=S.settings&&S.settings.foodTarget,G=goalNums(sel);
-  if(S.tgEdit)return `<div class="fx-panel"><div class="eyebrow">Цель на день ${qh("Сколько нужно съесть за день. Если ккал оставить пустыми — посчитаю из БЖУ (4/9/4). На разгрузочной неделе трекер сам добавит углеводы.")}</div>
+  if(S.tgEdit)return `<div class="fx-panel"><div class="eyebrow">Цель на день ${qh("Сколько съесть за день: калории, белки (Б), жиры (Ж) и углеводы (У). Калории можно не писать — посчитаю сам.")}</div>
     <div class="fx-g" style="grid-template-columns:repeat(4,1fr)">${[["k","ккал",ct&&ct.kcal],["p","Б, г",ct&&ct.p],["f","Ж, г",ct&&ct.f],["c","У, г",ct&&ct.c]].map(([k,l,v])=>`<label>${l}<input id="tg-${k}" inputmode="numeric" value="${v||""}"></label>`).join("")}</div>
     <div class="me-row"><button class="btn small" data-act="tgsave">Сохранить цель</button><button class="link" data-act="tgcancel">Отмена</button></div></div>`;
   return `<div class="goal-row"><span><span class="eyebrow">Цель на день</span><b class="num">${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c}</b></span><button class="link" data-act="tgedit">Изменить</button></div>`}
@@ -1904,7 +1904,7 @@ function mealsCard(sel){
   const ck='<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   return `<section class="card ml-card dt" data-open="${S.dt.meals?1:0}">
     <div class="dt-sum ml-head" role="button" tabindex="0" data-act="dt" data-k="meals" aria-label="План питания: показать или скрыть">
-      <div class="w-top"><div><div class="eyebrow">Питание${dl?" · разгрузка":""} ${qh("Нажми на приём, когда съел; повторное нажатие снимает отметку. Отмеченное само записывается в итог дня. Приёмы с 📌 повторяются каждый день, остальные — только в этот день. Крупы — сухой вес, курица и картошка — сырой. Замены: кускус 80 г = рис 65 г = макароны 70 г = картошка 300 г; тунец 1 банка = курица 180 г.")}</div><div class="w-big num">${s.n}<small> из ${P.length} ${plural(P.length,"приёма","приёмов","приёмов")}</small></div></div>
+      <div class="w-top"><div><div class="eyebrow">Питание${dl?" · разгрузка":""} ${qh("Съел — нажми на приём. Нажмёшь ещё раз — отметка снимется.\n\nПриёмы с 📌 появляются каждый день, остальные — только сегодня.")}</div><div class="w-big num">${s.n}<small> из ${P.length} ${plural(P.length,"приёма","приёмов","приёмов")}</small></div></div>
       <div class="ml-sum"><b>${s.k.toLocaleString("ru-RU")}</b><span>из ${G.k.toLocaleString("ru-RU")} ккал</span></div></div>
       <div class="ml-mac">${(()=>{const T=G;return [["Белки","p"],["Жиры","f"],["Углеводы","c"]].map(([l,x])=>`<div class="ml-m"><span>${l}</span><b class="num">${s[x]}<small> / ${T[x]} г</small></b><i><em style="width:${T[x]?Math.min(100,s[x]/T[x]*100):0}%"></em></i></div>`).join("")})()}</div>
       <div class="ml-dots"><span class="ml-chev nx-hint">${S.dt.meals?"Скрыть":"Показать"}</span></div>
@@ -1918,7 +1918,7 @@ function mealsCard(sel){
     <div class="me-btns"><button class="btn ghost" data-act="meedit" style="margin:0">${P.length?"Изменить":"+ Приём"}</button><button class="btn ghost" data-act="meyest" style="margin:0">Как вчера</button></div>
     ${goalBlock(sel)}
     ${(()=>{const f=dayDoc(sel).food;return f&&f.kcal&&f.src!=="plan"?`<div class="w-verdict" data-t="up">За день записано ${f.src==="health"?"из FatSecret":"вручную"}: <b>${Math.round(f.kcal).toLocaleString("ru-RU")} ккал</b> · Б ${Math.round(f.p||0)} Ж ${Math.round(f.f||0)} У ${Math.round(f.c||0)}</div>`:""})()}
-    ${(()=>{const mt=maintenance();return mt?`<div class="w-verdict" data-t="up"><b>Расчётная поддержка ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал</b> — по ${mt.days} дням питания и тренду веса (±150 ккал).</div>`:""})()}
+    ${(()=>{const mt=maintenance();return mt?`<div class="w-verdict" data-t="up"><b>Чтобы вес стоял на месте, тебе нужно ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал в день</b> — посчитано по ${mt.days} дням еды и веса (±150).</div>`:""})()}
     <button class="btn ghost" data-act="tab" data-v="calc" style="margin-top:0">Рассчитать норму калорий и БЖУ</button>`}
   </div></section>`;
 }
@@ -1942,7 +1942,7 @@ function foodCard(sel){
       <div class="w-row"><span>Среднее</span><span class="num">${Math.round(wk.kcal).toLocaleString("ru-RU")} ккал</span><span class="num" data-t="${foodState(wk.kcal,T.kcal)==="ok"?"down":"up"}">${foodState(wk.kcal,T.kcal)==="ok"?"✓":foodState(wk.kcal,T.kcal)==="under"?"мало":"много"}</span></div>
       <div class="w-row"><span>Белок в среднем</span><span class="num">${Math.round(wk.p)} г</span><span class="num" data-t="${wk.p>=170?"down":"up"}">${wk.p>=170?"✓":"мало"}</span></div>
       <div class="w-row"><span>Дней с белком ≥170 г</span><span class="num">${wk.pOk} из ${wk.n}</span><span></span></div></div>`:""}
-    ${mt?`<div class="w-verdict" data-t="up"><b>Расчётная поддержка ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал.</b> По ${mt.days} дням: ты ел в среднем ${mt.intake.toLocaleString("ru-RU")} ккал, а вес по тренду менялся соответственно. Цифра примерная (±150 ккал): точность зависит от честности подсчёта.</div>`
+    ${mt?`<div class="w-verdict" data-t="up"><b>Чтобы вес стоял на месте, тебе нужно ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал в день.</b> За ${mt.days} дней ты ел в среднем ${mt.intake.toLocaleString("ru-RU")} ккал — по тому, как менялся вес, это и есть твоя норма. Чем честнее записи, тем точнее.</div>`
       :`<div class="rir">После 10+ дней записей питания и веса трекер посчитает твою реальную поддержку калорий.</div>`}
   </section>`;
 }
@@ -1970,10 +1970,10 @@ function vActivity(){
       return `<button class="col" data-act="actpick" data-d="${x}" style="background:none;border:0;padding:0" aria-label="${dm(x)}: ${s} шагов"><span class="b" data-hit="${s>=g?1:0}" data-sel="${x===sel?1:0}" style="height:${Math.max(3,Math.round(s/mx*100))}px;background:${s?stepColor(s/g):"var(--surface-2)"}"></span><small>${DOW[new Date(x+"T12:00:00").getDay()]}</small></button>`}).join("")}</div>
   </section>
   <section class="card" style="display:flex;flex-direction:column;gap:10px">
-    <div class="eyebrow">Кардио · неделя: ${cardio.length} из 3–4 · ${cmin} мин ${qh("Ориентир: LISS 30–40 мин, пульс 120–135, после силовой или в день отдыха. 3–4 раза в неделю.")}</div>
+    <div class="eyebrow">Кардио · неделя: ${cardio.length} из 3–4 · ${cmin} мин ${qh("Спокойное кардио: быстрая ходьба, велосипед, дорожка в горку — 30–40 минут, 3–4 раза в неделю. Темп такой, чтобы мог говорить, но не петь (пульс 120–135).")}</div>
     <div class="row-in"><select id="cd-type" aria-label="Вид кардио">${CARDIO.map(c=>`<option>${c}</option>`).join("")}</select></div>
     <div class="row-in"><input id="cd-min" type="number" inputmode="numeric" placeholder="Минуты" aria-label="Минуты"><input id="cd-hr" type="number" inputmode="numeric" placeholder="Пульс, ср." aria-label="Средний пульс"><button class="btn small" data-act="cdadd">Добавить</button></div>
-    ${(d.cardio||[]).map((c,i)=>`<div class="cardio-item"><span>${esc(c.type)} · <b class="num">${c.min} мин</b>${c.hr?` · <span class="num">${c.hr} уд/мин</span>${c.hr>135?' <span style="color:var(--hold)">выше зоны LISS</span>':c.hr<120?' <span style="color:var(--muted)">ниже зоны</span>':""}`:""}</span><button class="link" data-act="cddel" data-i="${i}">Удалить</button></div>`).join("")||`<div class="rir">${lbl}: кардио не записано.</div>`}
+    ${(d.cardio||[]).map((c,i)=>`<div class="cardio-item"><span>${esc(c.type)} · <b class="num">${c.min} мин</b>${c.hr?` · <span class="num">${c.hr} уд/мин</span>${c.hr>135?' <span style="color:var(--hold)">слишком быстро</span>':c.hr<120?' <span style="color:var(--muted)">ниже зоны</span>':""}`:""}</span><button class="link" data-act="cddel" data-i="${i}">Удалить</button></div>`).join("")||`<div class="rir">${lbl}: кардио не записано.</div>`}
   </section>
   <div class="card pos dt" data-open="${S.dt.hk?1:0}">
     <div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="hk">Автоимпорт шагов из «Здоровья»</div><div class="dt-body">
@@ -2126,7 +2126,7 @@ function vStory(){
   const th=S.storyTheme||"dark",h=ls.get("meso-handle","@vozleneba");
   return `
   <div class="wk-head"><button class="back" data-act="tab" data-v="summary" aria-label="Назад">←</button>
-    <div><h2>Карточка для сторис ${qh("Наклейка — PNG с прозрачным фоном: в Instagram открой своё фото или видео → стикеры → «Фото» и выбери картинку. Если кнопка сохранения не сработает, зажми картинку пальцем и выбери «Сохранить в Фото».")}</h2><div class="rir">${th==="sticker"?"PNG с прозрачным фоном":"1080×1920"} · ${esc(TITLES[s.day]||s.day)} · ${dm(s.date)}</div></div></div>
+    <div><h2>Карточка для сторис ${qh("Наклейка — картинка без фона. В Instagram: открой своё фото или видео → стикеры → «Фото» → выбери её.")}</h2><div class="rir">${th==="sticker"?"PNG с прозрачным фоном":"1080×1920"} · ${esc(TITLES[s.day]||s.day)} · ${dm(s.date)}</div></div></div>
   <div class="story-wrap" data-t="${th}"><img id="story-img" alt="Карточка тренировки для сторис"><canvas id="story-cv" width="1080" height="1920" hidden></canvas></div>
   <div class="seg" role="group" aria-label="Стиль">${[["dark","Классика"],["poster","Постер"],["sticker","Наклейка"]].map(([k,l])=>`<button data-act="sttheme" data-k="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div>
   <div class="row-in"><input id="st-handle" placeholder="Подпись, например @твой_ник" value="${esc(h)}" data-in="sthandle" aria-label="Подпись на карточке"><button class="btn small ghost" data-act="strender">Обновить</button></div>
@@ -2417,7 +2417,7 @@ function vProg(){
     <div class="pe-dact"><button class="link" data-act="pedmv" data-d="${di}" data-k="-1">↑ выше</button><button class="link" data-act="pedmv" data-d="${di}" data-k="1">↓ ниже</button><button class="link" data-act="pedeld" data-d="${di}" style="margin-left:auto;color:#ff5a4e">Удалить день</button></div>
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
-    <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее. Для волны у базовых упражнений нужен 1ПМ — максимальный вес на 1 повтор (примерно: вес × (1 + повторы ÷ 30)).")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
+    <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее.\n\nБаза — тяжёлые упражнения на много мышц сразу: жимы, тяги, приседания.\nИзоляция — на одну мышцу: бицепс, махи, разгибания.\n\n1ПМ — максимальный вес, который поднимешь 1 раз. Не знаешь — посчитай: вес × (1 + повторы ÷ 30). Например, 80 кг × 8 → 80 × 1,27 ≈ 101 кг.")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
   ${S.pe.presets?presetsBlock():`<button class="btn ghost" data-act="pepr" style="margin-top:0">Готовые программы</button>`}
   <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Как растёт вес.\n\nЛинейная — каждую тренировку чуть тяжелее, пока получается. Для новичков.\n\nДвойная — сначала добавляешь повторы, потом вес. Например, 8–12: смог 12 во всех подходах — в следующий раз тяжелее.\n\nВолна — неделя за неделей вес тяжелее, повторов меньше, 5-я неделя лёгкая. Для опытных.")}</div>
     <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
@@ -2623,10 +2623,10 @@ function vHome(pos){
   <div class="card pos dt" data-open="${S.dt.rules?1:0}">
     <div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="rules">Правила цикла</div><div class="dt-body">
     <ul class="rules" style="margin-top:12px">
-      <li>RIR — норматив, повторы — ориентир. Записывай фактические повторы и RIR последнего подхода.</li>
-      <li>Отказ только там, где есть упоры. На гантелях в неделю 4 — за повтор до отказа.</li>
-      <li>Подход закончен при развале техники, а не при достижении числа. Повтор со страховкой не считается.</li>
-      <li>Поясница 0–10 — отметка в четверг утром, после дня ног. Выше 3 — снижаем вес на мосту.</li>
+      <li>RIR (запас) — сколько повторов ты ещё мог бы сделать. 0 — больше ни одного, 2 — ещё два смог бы. Это важнее, чем точное число повторов.</li>
+      <li>До конца (когда больше ни одного повтора) — только в тренажёрах, где это безопасно.</li>
+      <li>Начала портиться техника — подход закончен, даже если не досчитал. Повтор с помощью партнёра не считается.</li>
+      <li>Поясница 0–10 — отметь на следующее утро после ног. Больше 3 — вес на мосту станет меньше.</li>
     </ul>
   </div></div>
   <div class="card pos dt" data-open="${S.dt.pos?1:0}">
@@ -2665,7 +2665,7 @@ function vWorkout(){
       <div class="plan num" style="margin-top:-4px">${sets}× ${r.kg==null?"подбор":kgLabel(bw,r.kg)+kgUnit(bw,r.kg)} · ${lo==null?"макс":lo===hi?lo:lo+"–"+hi} повт. ${note?qh(note):""}</div>
       ${L?`<div class="last">Прошлый раз (${dm(L.s.date)}): <span class="num">${setsText(L.e)}</span></div>`:""}
       ${r.hints.some(h=>h.t==="warn")?`<div class="chips">${r.hints.filter(h=>h.t==="warn").map(h=>`<span class="chip" data-t="warn">${esc(h.text)}</span>`).join("")}</div>`:""}
-      ${(e.wu||[]).length?`<div class="wu"><div class="wu-h"><span>Разминка ${qh("Не в счёт рабочего объёма. Без отказа, быстро и чисто. Подходы можно добавлять и убирать.")}</span></div>${e.wu.map((w,wi)=>`
+      ${(e.wu||[]).length?`<div class="wu"><div class="wu-h"><span>Разминка ${qh("Разминка готовит мышцы к весу. Делай легко, не до усталости.")}</span></div>${e.wu.map((w,wi)=>`
         <div class="set wu-row" data-done="${w.done?1:0}">
           <span class="i">Р${wi+1}</span>
           <input id="wkg-${ei}-${wi}" inputmode="decimal" aria-label="Вес разминки ${wi+1}" placeholder="${bw?"СВ":""}" value="${bw&&!+w.kg?"":esc(String(w.kg).replace(".",","))}" data-in="wkg" data-e="${ei}" data-w="${wi}">
@@ -2674,13 +2674,13 @@ function vWorkout(){
           <span class="pct">${r.kg&&+w.kg&&!bw?Math.round(+w.kg/r.kg*100)+"%":""}</span>
           <button class="tick" data-act="wtick" data-e="${ei}" data-w="${wi}" aria-label="Разминочный подход выполнен">✓</button>
         </div>`).join("")}<div class="wu-act"><button class="link" data-act="addwu" data-e="${ei}">+ разминка</button><button class="link" data-act="delwu" data-e="${ei}">− разминка</button></div></div>`:""}
-      <div class="sets"><div class="set-head" aria-hidden="true"><span>#</span><span>${bw?"+кг":"кг"}</span><span></span><span>повт</span><span>RIR ${W.rir.replace("RIR ","")}</span><span></span></div>${rows}</div>
+      <div class="sets"><div class="set-head"><span>#</span><span>${bw?"+кг":"кг"}</span><span></span><span>повт</span><span>RIR ${W.rir.replace("RIR ","")}${ei===0?" "+qh("RIR, или запас, — сколько повторов ты ещё мог бы сделать после подхода.\n\n0 — больше ни одного.\n1 — ещё один смог бы.\n2 — ещё два.\n\nЦифра сверху — сколько запаса нужно оставлять на этой неделе. Отмечай его — так трекер точнее подскажет вес."):""}</span><span></span></div>${rows}</div>
       <div id="adv-${ei}">${advHTML(ei)}</div>
       <div class="ex-actions">${(e.wu||[]).length?"":`<button class="link" data-act="addwu" data-e="${ei}">+ разминка</button>`}<button class="link" data-act="addset" data-e="${ei}">+ подход</button>${e.sets.length?`<button class="link" data-act="delset" data-e="${ei}">− подход</button>`:""}${altsFor(e.pid).length?`<button class="link swap-btn" data-act="swapopen" data-e="${ei}" style="margin-left:auto">⇄ ${e.orig?"Другая замена":"Тренажёр занят?"}</button>`:""}</div>
       ${S.swapOpen===ei?`<div class="swap"><div class="wu-h"><span>Чем заменить</span><span>вес пересчитается</span></div>${altsFor(e.pid).map(a=>`<button class="swap-opt" data-act="swap" data-e="${ei}" data-k="${a[0]}" aria-pressed="${e.id===e.pid+"~"+a[0]}"><b>${esc(a[1])}</b><span>${a[2]==null?"вес подбором":lastFor(e.pid+"~"+a[0])?"есть история":"≈ "+Math.round(a[2]*100)+"% от плана"}</span></button>`).join("")}${e.orig?`<button class="swap-opt" data-act="swap" data-e="${ei}" data-k="orig"><b>Вернуть: ${esc(e.orig.name)}</b><span>по плану</span></button>`:""}</div>`:""}
     </section>`}).join("");
   const done=D.ex.reduce((a,e)=>a+e.sets.filter(s=>s.done).length,0),total=D.ex.reduce((a,e)=>a+e.sets.length,0);
-  const back=D.day==="arms"?`<section class="card backpain"><div><b>Поясница утром, 0–10 ${qh("После вчерашних ног. Выше 3 — на следующей неделе мост станет легче.")}</b></div>
+  const back=D.day==="arms"?`<section class="card backpain"><div><b>Поясница утром, 0–10 ${qh("Как поясница после вчерашних ног: 0 — всё хорошо, 10 — сильно болит. Больше 3 — вес на мосту станет меньше.")}</b></div>
     <div class="scale">${[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-act="back" data-v="${n}" data-hi="${n>3?1:0}" aria-pressed="${D.back===n}">${n}</button>`).join("")}</div></section>`:"";
   return `
   <section class="wk-hero">
