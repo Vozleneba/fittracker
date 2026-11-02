@@ -1819,7 +1819,7 @@ function vActivity(){
     </ol>
     <div class="row-in" style="margin-top:10px"><input id="hk-url" readonly value="${esc(tgStepsUrl())}" aria-label="Шаблон ссылки"><button class="btn small" data-act="hkcopy">Копировать</button></div>
     <p class="foot" style="margin-top:8px">Ссылка личная — не публикуй её. Повторный запуск в тот же день просто обновит число, меньшее значение не перезапишет большее.</p>
-  </div></div>`;
+  </div></div>${tgReadKeyCard()}`;
 }
 
 // ===== Карточка для сторис (canvas 1080×1920)
@@ -2410,6 +2410,7 @@ document.addEventListener("click",ev=>{
   else if(a==="stset"||a==="stadd"){const d=S.actDate||today(),doc={...dayDoc(d)};
     if(a==="stset"){const v=parseInt($("#st-in").value,10);if(!(v>=0)){toast("Впиши число шагов");return}doc.steps=v}else doc.steps=(doc.steps||0)+ +b.dataset.n;
     saveDay(doc).then(()=>{render();if(doc.steps>=goal())toast("Норма шагов закрыта")})}
+  else if(a==="rkcopy"){const v=$("#rk-key").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ключ скопирован"),()=>{$("#rk-key").select();toast("Выдели и скопируй вручную")})}catch(e){$("#rk-key").select()}}
   else if(a==="hkcopy"){const v=$("#hk-url").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ссылка скопирована"),()=>{$("#hk-url").select();toast("Выдели и скопируй вручную")})}catch(e){$("#hk-url").select()}}
   else if(a==="wsave"){const d=S.actDate||today(),v=parseFloat(String($("#w-in").value).replace(",","."));
     if(!(v>=30&&v<=250)){toast("Впиши вес в кг, например 82,4");return}
@@ -2623,6 +2624,20 @@ function tgStepsUrl(){
   if(S.stepsUrl) return S.stepsUrl;
   if(!S._skReq&&tgInitData()){S._skReq=1;cloudApi("stepskey").then(j=>{if(j&&j.key){S.stepsUrl=API_URL+"?k="+j.key+"&steps=ШАГИ&date=ДАТА";render()}else S._skReq=0}).catch(()=>{S._skReq=0})}
   return "загружаю ключ…";
+}
+
+// Ключ «только для чтения» — для разбора тренировок в Claude
+function tgReadKey(){
+  if(S.readKey) return S.readKey;
+  if(!S._rkReq&&tgInitData()){S._rkReq=1;cloudApi("readkey").then(j=>{if(j&&j.key){S.readKey=j.key;render()}else S._rkReq=0}).catch(()=>{S._rkReq=0})}
+  return "загружаю ключ…";
+}
+function tgReadKeyCard(){
+  if(!tgInitData()) return "";
+  return `<div class="card pos dt" data-open="${S.dt.rk?1:0}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="rk">Доступ для Claude (только чтение)</div><div class="dt-body">
+    <div class="row-in" style="margin-top:12px"><input id="rk-key" readonly value="${esc(tgReadKey())}" aria-label="Ключ чтения"><button class="btn small" data-act="rkcopy">Копировать</button></div>
+    <p class="foot" style="margin-top:8px">Вставь ключ в чат с Claude — он сможет сам смотреть тренировки, вес и шаги. Изменить или удалить данные по этому ключу нельзя.</p>
+  </div></div>`;
 }
 
 render();init();
