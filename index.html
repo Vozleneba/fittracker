@@ -1770,7 +1770,7 @@ function vCalc(){
     <div class="cq-l">Работа</div>${seg("job",[["sit","Сидячая"],["stand","На ногах"],["phys","Физическая"]])}
     <div class="cq-l">Силовых тренировок в неделю</div>${seg("train",[[0,"0"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6+"]])}</section>
   <section class="card cq"><div class="eyebrow">3 · Цель ${qh({cut:"Сушка: дефицит под нужный темп похудения (% веса в неделю), белок повыше для сохранения мышц.",recomp:"Рекомпозиция: небольшой дефицит ~10% — медленно минус жир при росте силы. Хорошо работает у новичков и после перерыва.",keep:"Поддержка: калории на уровне расхода.",gain:"Набор: профицит ~8%, +0,25–0,5% веса в месяц — мышцы с минимумом жира."}[c.goal])}</div>${seg("goal",Object.entries(GOALS).map(([k,v])=>[k,v.replace("Набрать мышцы","Набор").replace("Сбросить жир","Сушка").replace("Поддерживать","Поддержка").replace("Рекомпозиция","Реком-я")]))}
-    ${c.goal==="cut"?`<div class="cq-l">Темп</div>${seg("pace",[["soft","Мягкий 0,5%"],["std","Средний 0,75%"],["fast","Быстрый 1%"]])}`:c.goal==="gain"?`<div class="cq-l">Темп</div>${seg("pace",[["lean","Чистый"],["fast","Быстрый"]])}`:""}
+    ${c.goal==="cut"?`<div class="cq-l">Темп</div>${seg("pace",[["soft","Спокойно 0,5%"],["std","Оптимально 0,75%"],["fast","Быстро 1%"]])}`:c.goal==="gain"?`<div class="cq-l">Темп</div>${seg("pace",[["lean","Без лишнего жира"],["fast","Быстрее, с жиром"]])}`:""}
     ${c.goal==="cut"||c.goal==="gain"?`<div class="cf-grid" style="grid-template-columns:1fr">${inp("target","Желаемый вес, кг","необяз.","decimal")}</div>`:""}</section>
   <section class="card cq" id="calc-res">${calcResHTML()}</section>`}
 const fr=a=>a[0]===a[1]?a[0].toLocaleString("ru-RU"):`${a[0].toLocaleString("ru-RU")}–${a[1].toLocaleString("ru-RU")}`;
@@ -2476,7 +2476,7 @@ function navyBF(sex,h,waist,neck,hip){const L=Math.log10,n=x=>parseFloat(String(
   return v>=3&&v<=60?Math.round(v*10)/10:null}
 function obBF(A){if(A.bfm==="know"){const v=parseFloat(String(A.bf||"").replace(",","."));return v>=3&&v<=60?v:null}if(A.bfm==="tape")return navyBF(A.sex,A.height,A.waist,A.neck,A.hip);return null}
 const OB_ACT={low:{steps:4000,job:"sit"},walk:{steps:10000,job:"sit"},stand:{steps:9000,job:"stand"},phys:{steps:9000,job:"phys"}};
-const OB_PACE={cut:[["soft","Спокойно"],["std","Средне"],["fast","Быстро"]],gain:[["lean","Чисто"],["fast","Быстрее"]]};
+const OB_PACE={cut:[["soft","Спокойно"],["std","Оптимально · советую"],["fast","Быстро"]],gain:[["lean","Без лишнего жира · советую"],["fast","Быстрее, но с жиром"]]};
 const OB_HEALTH_F=[["preg","Беременность"],["bfeed","Кормлю грудью"],["cycle","Цикл сбился или пропал"]],OB_HEALTH=[["diab","Диабет"],["thyr","Щитовидка"],["kidney","Почки"],["heart","Сердце или давление"],["other","Другое хроническое"]];
 const obNum=v=>parseFloat(String(v??"").replace(",","."));
 function obSteps(A){return A.steps==="?"?5000:obNum(A.steps)}
@@ -2489,7 +2489,7 @@ function obPreset(A){const d=+A.days;
   if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
 function obPaceHtml(A){const o=OB_PACE[A.goal];if(!o)return "";const cut=A.goal==="cut";
-  return `<section class="card ob-q"><div class="eyebrow">${cut?"Как быстро худеть":"Как быстро набирать"} ${qh(cut?"Спокойно — минус 0,5% веса в неделю, средне — 0,75%, быстро — 1%.\nСильный дефицит не сжигает больше жира — начинают уходить мышцы, растёт голод и риск сорваться.":"Чисто — +150–200 ккал к расходу, быстрее — около +300.\nБольше калорий не ускоряет рост мышц: всё лишнее уходит в жир.")}</div>
+  return `<section class="card ob-q"><div class="eyebrow">${cut?"Как быстро худеть":"Как быстро набирать"} ${qh(cut?"Спокойно — минус 0,5% веса в неделю, оптимально — 0,75%, быстро — 1%.\nСильный дефицит не сжигает больше жира — начинают уходить мышцы, растёт голод и риск сорваться.":"Без лишнего жира — +150–200 ккал к расходу, быстрее — около +300.\nБольше калорий не ускоряет рост мышц: всё лишнее уходит в жир.")}</div>
     <div class="pe-chips ob-ch">${o.map(([v,l])=>`<button data-act="obs" data-k="pace" data-v="${v}" aria-pressed="${A.pace===v}">${l}</button>`).join("")}</div>
     ${A.pace==="fast"?`<div class="rir">${cut?"Быстрее — не значит лучше: при большом дефиците уходят мышцы, а жира сгорает не больше.":"Мышцы быстрее расти не будут — лишнее пойдёт в жир."}</div>`:""}</section>`}
 function obHealthHtml(A){const h=A.health||[],opts=[...(A.sex==="f"?OB_HEALTH_F:[]),...OB_HEALTH,["none","Ничего из этого"]];
