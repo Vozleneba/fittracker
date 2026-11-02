@@ -927,7 +927,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pr-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .pr-days{display:flex;gap:6px;flex-wrap:wrap}.pr-days span{font-size:11.5px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--leaf) 10%,transparent);color:var(--fg)}
 .pr-card .btn{align-self:flex-start}
-.ob-q{display:flex;flex-direction:column;gap:10px}.ob-ch{flex-wrap:wrap;overflow:visible}.ob-ch button{padding:9px 14px;font-size:13.5px}
+.ob-q{display:flex;flex-direction:column;gap:10px}.ob-ch{flex-wrap:wrap;overflow:visible}.ob-ch button{padding:9px 14px;font-size:13.5px;white-space:normal;max-width:100%;text-align:left;line-height:1.3}
 .ob-cons{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.4;padding:4px 2px}.ob-cons input{width:20px;height:20px;flex:none;accent-color:var(--leaf)}
 .ob-res{display:flex;flex-direction:column;gap:10px;border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))}.ob-p{font-size:20px}.ob-res p{margin:0;font-size:13px;color:var(--muted)}
 .ob-k{display:flex;flex-direction:column;gap:2px}.ob-k b{font-size:22px;color:var(--leaf)}.ob-k span{font-size:12.5px;color:var(--muted)}
@@ -2418,21 +2418,46 @@ const OB_Q=[
  {k:"exp",t:"Сколько тренируешься",o:[["new","Только начинаю"],["mid","От полугода до 2 лет"],["pro","Больше 2 лет"]]},
  {k:"days",t:"Сколько раз в неделю готов тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
  {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"]]},
- {k:"focus",t:"Акцент",o:[["even","Всё тело равномерно"],["glute","Ягодицы и ноги"]]}];
+ {k:"focus",t:"Акцент",o:[]}];
+// ===== Акценты анкеты: меняют подходы, повторы, прогрессию и добавляют упражнения
+const FOCUS={
+ even:{n:"Всё тело равномерно"},
+ strength:{n:"Сила",d:"меньше повторов, тяжелее веса"},
+ hyp:{n:"Гипертрофия (рост мышц)",d:"средние повторы, больше подходов"},
+ chest:{n:"Грудь",m:["chest"]},back:{n:"Спина",m:["back"]},shoulders:{n:"Плечи",m:["shoulders"]},arms:{n:"Руки",m:["biceps","triceps"]},
+ glute:{n:"Ягодицы и ноги",m:["glutes","hams"]},upper:{n:"Верх тела и осанка",m:["back","shoulders"]}};
+const FOCUS_BY_SEX={m:["even","strength","hyp","chest","back","shoulders","arms"],f:["even","glute","strength","hyp","upper"],"":["even","strength","hyp"]};
+const EXTRA_BY_M={chest:{gym:["c_cfly","c_pecdeck","c_dbinc"],home:["c_dbfly","c_pushup"]},back:{gym:["c_cgpd","c_1crow","c_sapd"],home:["c_dbrow","c_dbpullover"]},
+ shoulders:{gym:["c_clat","c_rdm","c_facepull"],home:["c_dblat","c_dbrear"]},biceps:{gym:["c_bayes","c_preacher"],home:["c_inccurl","c_conc"]},
+ triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc"],home:["c_dbrdl","c_slrdl"]}};
+function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.place==="home",old=S.pe;S.pe={pg};
+  const each=fn=>pg.days.forEach(d=>d.ex.forEach(e=>fn(e,d)));
+  if(f==="strength"){if(A.exp==="new"){pg.prog="linear"}else delete pg.prog;
+    each(e=>{delete e.prog;if(e.type==="base"){if(pg.prog==="linear")e.rr=[5,3,5];else delete e.rr}else{e.prog="double";e.rr=[3,8,12]}rebuildW(e,null)})}
+  if(f==="hyp"){pg.prog="double";each(e=>{delete e.prog;e.rr=e.type==="base"?[4,6,10]:[4,10,15];rebuildW(e,null)})}
+  if(F.m){const target=new Set(F.m);
+    if(pg.prog==="linear"){pg.prog="double";each(e=>{if(e.prog==="double")delete e.prog;delete e.rr;rebuildW(e,null)})}
+    each(e=>{const c=CATM[e.id];if(!c||!target.has(c.m))return;if(e.rr){e.rr=[Math.min(5,e.rr[0]+1),e.rr[1],e.rr[2]];rebuildW(e,null)}else{e.w=e.w.map((w,i)=>i<4?[Math.min(5,w[0]+1),w[1],w[2],w[3]]:w)}});
+    // по одному доп. упражнению на целевую мышцу в двух днях
+    for(const m of F.m){const pool=(EXTRA_BY_M[m]||{})[home?"home":"gym"]||[];let added=0;
+      const days=pg.days.slice().sort((a,b)=>b.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length-a.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length);
+      for(const d of days){if(added>=2)break;const id=pool.find(x=>!d.ex.some(e=>e.id===x));if(!id)continue;const c=CATM[id];
+        const e={id,name:c.name,inc:c.inc||2.5,type:c.type};if(c.eq==="bw")e.bw=true;if(c.type==="iso"&&(pg.prog||"wave")==="wave")e.prog="double";rebuildW(e,null);d.ex.push(e);added++}}}
+  S.pe=old;return pg}
 function obPreset(A){const d=+A.days;
   if(A.place==="home")return "home3";
-  if(A.focus==="glute")return d>=4?"glute4":"fb3";
+  if(A.focus==="glute"&&d>=4)return "glute4";
   if(A.exp==="new")return d>=4?"ul4":"fb3";
   if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
 function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{sex:S.settings.profile.sex,goal:S.settings.profile.goal,age:S.settings.profile.age,height:S.settings.profile.height,weight:String(S.settings.profile.weight||"").replace(".",",")}:{})},consent:!!(S.settings&&S.settings.consent)}),A=O.a;
-  const ready=OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
+  const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
   let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
-    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}</p>
+    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}${FOCUS[A.focus].m?" — больше подходов и упражнений на эти мышцы":A.focus==="strength"?" — меньше повторов, тяжелее веса":" — больше подходов, 6–15 повторов"}.`:""}</p>
       ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}`:""}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">6 вопросов — и подберу программу и питание</div></div></div>
-  ${OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${A.sex==="f"?"готова":A.sex==="m"?"готов":"готов(а)"} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
+  ${OB_Q.map(q=>({...q,o:q.k==="focus"?FOCUS_BY_SEX[A.sex||""].map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${A.sex==="f"?"готова":A.sex==="m"?"готов":"готов(а)"} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
   <section class="card ob-q"><div class="eyebrow">О тебе</div><div class="fx-g" style="grid-template-columns:repeat(3,1fr)">
     <label>Возраст<input id="ob-age" inputmode="numeric" value="${esc(A.age||"")}" data-in="ob" data-k="age"></label>
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
@@ -2441,12 +2466,12 @@ function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{
   ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> ${A.sex==="f"?"Согласна":A.sex==="m"?"Согласен":"Согласен(а)"}, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
   ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
 function obHandle(a,b){const O=S.ob;if(!O)return false;
-  if(a==="obs"){O.a[b.dataset.k]=b.dataset.v;render();return true}
+  if(a==="obs"){O.a[b.dataset.k]=b.dataset.v;if(O.a.focus&&!FOCUS_BY_SEX[O.a.sex||""].includes(O.a.focus))delete O.a.focus;render();return true}
   if(a==="obx"){S.ob=null;S.view="home";render();return true}
   if(a==="obgo"){const A=O.a,P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
     const st={...(S.settings||{})};st.profile={...(st.profile||{}),sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:"soft",job:(st.profile&&st.profile.job)||"sit"};
     if(r)st.foodTarget={kcal:r.kcal,p:r.p,f:r.f,c:r.c};st.consent=st.consent||new Date().toISOString();
-    const pg=presetProgram(P);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
+    const pg=applyFocus(presetProgram(P),A);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
     saveSettings().then(()=>{render();window.scrollTo(0,0);toast("Готово! Впиши веса, с которых начинаешь, или оставь пустыми — подберёшь на тренировке")},()=>toast("Не удалось сохранить"));return true}
   return false}
 function vProg(){
