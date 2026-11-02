@@ -927,6 +927,10 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pr-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .pr-days{display:flex;gap:6px;flex-wrap:wrap}.pr-days span{font-size:11.5px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--leaf) 10%,transparent);color:var(--fg)}
 .pr-card .btn{align-self:flex-start}
+.ob-q{display:flex;flex-direction:column;gap:10px}.ob-ch{flex-wrap:wrap;overflow:visible}.ob-ch button{padding:9px 14px;font-size:13.5px}
+.ob-cons{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.4;padding:4px 2px}.ob-cons input{width:20px;height:20px;flex:none;accent-color:var(--leaf)}
+.ob-res{display:flex;flex-direction:column;gap:10px;border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))}.ob-p{font-size:20px}.ob-res p{margin:0;font-size:13px;color:var(--muted)}
+.ob-k{display:flex;flex-direction:column;gap:2px}.ob-k b{font-size:22px;color:var(--leaf)}.ob-k span{font-size:12.5px;color:var(--muted)}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1987,7 +1991,7 @@ function vActivity(){
     </ol>
     <div class="row-in" style="margin-top:10px"><input id="hk-url" readonly value="${esc(tgStepsUrl())}" aria-label="Шаблон ссылки"><button class="btn small" data-act="hkcopy">Копировать</button></div>
     <p class="foot" style="margin-top:8px">Ссылка личная — не публикуй её. Повторный запуск в тот же день просто обновит число, меньшее значение не перезапишет большее.</p>
-  </div></div>${tgReadKeyCard()}`;
+  </div></div>${tgReadKeyCard()}${tgWipeCard()}`;
 }
 
 // ===== Карточка для сторис (canvas 1080×1920)
@@ -2399,6 +2403,44 @@ function presetsBlock(){return `<section class="card pe-presets"><div class="pe-
   ${PRESETS.map(P=>`<div class="pr-card"><div class="pr-top"><b>${esc(P.name)}</b><span class="pr-tags"><i>${P.days} ${plural(P.days,"день","дня","дней")}</i><i>${P.lvl}</i><i>${PROG_NAMES[P.prog]}</i></span></div>
     <p>${esc(P.d)}</p><div class="pr-days">${P.plan.map(d=>`<span>${DOW[d[1]]} · ${esc(d[0])}</span>`).join("")}</div>
     <button class="btn small" data-act="pepick" data-id="${P.id}">Выбрать</button></div>`).join("")}</section>`}
+// ===== Анкета: первый вход или «Подобрать по анкете»
+const OB_Q=[
+ {k:"goal",t:"Твоя цель",o:[["cut","Сбросить жир"],["gain","Набрать мышцы"],["recomp","Подтянуть фигуру"],["keep","Держать форму"]]},
+ {k:"sex",t:"Пол",o:[["m","Мужской"],["f","Женский"]]},
+ {k:"exp",t:"Сколько тренируешься",o:[["new","Только начинаю"],["mid","От полугода до 2 лет"],["pro","Больше 2 лет"]]},
+ {k:"days",t:"Сколько раз в неделю готов тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
+ {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"]]},
+ {k:"focus",t:"Акцент",o:[["even","Всё тело равномерно"],["glute","Ягодицы и ноги"]]}];
+function obPreset(A){const d=+A.days;
+  if(A.place==="home")return "home3";
+  if(A.focus==="glute")return d>=4?"glute4":"fb3";
+  if(A.exp==="new")return d>=4?"ul4":"fb3";
+  if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
+  if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
+function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{sex:S.settings.profile.sex,goal:S.settings.profile.goal,age:S.settings.profile.age,height:S.settings.profile.height,weight:String(S.settings.profile.weight||"").replace(".",",")}:{})},consent:!!(S.settings&&S.settings.consent)}),A=O.a;
+  const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
+  let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
+    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}</p>
+      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}`:""}
+      <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
+  return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">6 вопросов — и подберу программу и питание</div></div></div>
+  ${OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").map(q=>`<section class="card ob-q"><div class="eyebrow">${q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
+  <section class="card ob-q"><div class="eyebrow">О тебе</div><div class="fx-g" style="grid-template-columns:repeat(3,1fr)">
+    <label>Возраст<input id="ob-age" inputmode="numeric" value="${esc(A.age||"")}" data-in="ob" data-k="age"></label>
+    <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
+    <label>Вес, кг<input id="ob-weight" inputmode="decimal" value="${esc(A.weight||"")}" data-in="ob" data-k="weight"></label></div>
+    ${A.age&&+A.age<16?`<div class="rir" style="color:#ff5a4e">Приложение — с 16 лет.</div>`:""}</section>
+  ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> Согласен, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
+  ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
+function obHandle(a,b){const O=S.ob;if(!O)return false;
+  if(a==="obs"){O.a[b.dataset.k]=b.dataset.v;render();return true}
+  if(a==="obx"){S.ob=null;S.view="home";render();return true}
+  if(a==="obgo"){const A=O.a,P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
+    const st={...(S.settings||{})};st.profile={...(st.profile||{}),sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:"soft",job:(st.profile&&st.profile.job)||"sit"};
+    if(r)st.foodTarget={kcal:r.kcal,p:r.p,f:r.f,c:r.c};st.consent=st.consent||new Date().toISOString();
+    const pg=presetProgram(P);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
+    saveSettings().then(()=>{render();window.scrollTo(0,0);toast("Готово! Впиши веса, с которых начинаешь, или оставь пустыми — подберёшь на тренировке")},()=>toast("Не удалось сохранить"));return true}
+  return false}
 function vProg(){
   if(!S.pe)S.pe={pg:clone(curProgram()),pick:null,q:"",m:""};
   const P=S.pe.pg;
@@ -2418,7 +2460,7 @@ function vProg(){
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
     <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее.\n\nБаза — тяжёлые упражнения на много мышц сразу: жимы, тяги, приседания.\nИзоляция — на одну мышцу: бицепс, махи, разгибания.\n\n1ПМ — максимальный вес, который поднимешь 1 раз. Не знаешь — посчитай: вес × (1 + повторы ÷ 30). Например, 80 кг × 8 → 80 × 1,27 ≈ 101 кг.")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
-  ${S.pe.presets?presetsBlock():`<button class="btn ghost" data-act="pepr" style="margin-top:0">Готовые программы</button>`}
+  ${S.pe.presets?presetsBlock():`<div class="me-btns"><button class="btn ghost" data-act="pepr" style="margin:0">Готовые программы</button><button class="btn ghost" data-act="peob" style="margin:0">Подобрать по анкете</button></div>`}
   <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Как растёт вес.\n\nЛинейная — каждую тренировку чуть тяжелее, пока получается. Для новичков.\n\nДвойная — сначала добавляешь повторы, потом вес. Например, 8–12: смог 12 во всех подходах — в следующий раз тяжелее.\n\nВолна — неделя за неделей вес тяжелее, повторов меньше, 5-я неделя лёгкая. Для опытных.")}</div>
     <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
   ${days}
@@ -2458,6 +2500,7 @@ function peHandle(a,b){const P=S.pe&&S.pe.pg;if(!P)return false;const di=+b.data
     const e={id,name:c.name,inc:c.inc||2.5,type:c.type,w:waveW(c.type,null,c.inc)};if(c.eq==="bw")e.bw=true;rebuildW(e,null);
     D.ex.push(e);S.pe.pick=null;render();toast("Добавлено — впиши "+(e.type==="base"?"1ПМ":"рабочий вес"));return true}
   if(a==="pepr"){S.pe.presets=true;render();return true}
+  if(a==="peob"){S.pe=null;S.ob=null;S.view="ob";render();window.scrollTo(0,0);return true}
   if(a==="peprx"){S.pe.presets=false;render();return true}
   if(a==="pepick"){const Pr=PRESETS.find(x=>x.id===b.dataset.id);if(!Pr)return true;S.pe.pg=presetProgram(Pr);S.pe.presets=false;render();window.scrollTo(0,0);
     toast("«"+Pr.name+"» подставлена — впиши стартовые веса и сохрани");return true}
@@ -2483,7 +2526,7 @@ function peInput(t){const P=S.pe&&S.pe.pg;if(!P)return;const D=P.days[+t.dataset
 function render(){
   hideTip();
   let pos=S.view==="workout"&&S.draft?S.draft:position();
-  const body=["activity","calc","calendar","history","hedit","prog"].includes(S.view),neu=S.view==="next";
+  const body=["activity","calc","calendar","history","hedit","prog","ob"].includes(S.view),neu=S.view==="next";
   const sumS=(S.view==="summary"||S.view==="story")&&(S.summaryDoc&&S.summaryDoc.id===S.summaryId?S.summaryDoc:S.sessions.find(x=>x.id===S.summaryId));
   if(sumS&&sumS.week)pos={...pos,week:sumS.week};
   document.documentElement.style.setProperty("--cur",wc(pos.week));
@@ -2496,7 +2539,7 @@ function render(){
   $("#tab-hist").setAttribute("aria-current",S.view==="history"||S.view==="hedit");
   $("#tab-act").setAttribute("aria-current",S.view==="activity"||S.view==="calc");
   $("#tabs").hidden=S.view==="workout"||S.view==="ready";
-  $("#app").innerHTML=S.view==="workout"?vWorkout():S.view==="history"?vHistory():S.view==="calendar"?vCalendar():S.view==="summary"?vSummary():S.view==="ready"?vReady():S.view==="next"?vNext():S.view==="activity"?vActivity():S.view==="prog"?vProg():S.view==="story"?vStory():S.view==="hedit"?vHistEdit():S.view==="calc"?vCalc():vHome(pos);
+  $("#app").innerHTML=S.view==="workout"?vWorkout():S.view==="history"?vHistory():S.view==="calendar"?vCalendar():S.view==="summary"?vSummary():S.view==="ready"?vReady():S.view==="next"?vNext():S.view==="activity"?vActivity():S.view==="prog"?vProg():S.view==="ob"?vOnboard():S.view==="story"?vStory():S.view==="hedit"?vHistEdit():S.view==="calc"?vCalc():vHome(pos);
   if(S.view==="story")requestAnimationFrame(renderStory);
 }
 function renderSafe(){ if(S.view!=="workout"&&S.view!=="ready"&&S.view!=="hedit"&&S.view!=="calc") render(); }
@@ -2890,6 +2933,7 @@ document.addEventListener("click",ev=>{
   else if(a==="stset"||a==="stadd"){const d=S.actDate||today(),doc={...dayDoc(d)};
     if(a==="stset"){const v=parseInt($("#st-in").value,10);if(!(v>=0)){toast("Впиши число шагов");return}doc.steps=v}else doc.steps=(doc.steps||0)+ +b.dataset.n;
     saveDay(doc).then(()=>{render();if(doc.steps>=goal())toast("Норма шагов закрыта")})}
+  else if(a==="tgwipe"){S.confirmDel=null;tgWipe()}
   else if(a==="rkcopy"){const v=$("#rk-key").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ключ скопирован"),()=>{$("#rk-key").select();toast("Выдели и скопируй вручную")})}catch(e){$("#rk-key").select()}}
   else if(a==="hkcopy"){const v=$("#hk-url").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ссылка скопирована"),()=>{$("#hk-url").select();toast("Выдели и скопируй вручную")})}catch(e){$("#hk-url").select()}}
   else if(a==="wsave"){const d=S.actDate||today(),v=parseFloat(String($("#w-in").value).replace(",","."));
@@ -2926,6 +2970,7 @@ document.addEventListener("click",ev=>{
     (baseChanged?(S.settings={...(S.settings||{}),mealPlan:base},saveSettings()):Promise.resolve()).then(()=>saveDay(doc)).then(()=>{render();toast(baseChanged?"Сохранено, закреплённые приёмы обновлены":"Сохранено на "+(d===today()?"сегодня":dm(d)))},()=>toast("Не удалось сохранить"))}
   else if(a.startsWith("fx")&&fxHandle(a,b)){}
   else if(a.startsWith("pe")&&peHandle(a,b)){}
+  else if(a.startsWith("ob")&&obHandle(a,b)){}
   else if(a==="meal"){const d=S.actDate||today(),doc={...dayDoc(d)},mm={...(doc.meals||{})},id=b.dataset.id;
     if(mm[id])delete mm[id];else mm[id]=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     doc.meals=mm;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
@@ -3008,6 +3053,8 @@ function onIn(ev){
   const t=ev.target,k=t.dataset.in;if(!k)return;
   if(k==="rqtext"){if(S.ready)S.ready.text=t.value;return}
   if(k==="pe"){peInput(t);return}
+  if(k==="ob"&&S.ob){S.ob.a[t.dataset.k]=t.value;clearTimeout(onIn.obT);onIn.obT=setTimeout(()=>{const id=t.id,pos=t.selectionStart;render();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},700);return}
+  if(k==="obc"&&S.ob){S.ob.consent=t.checked;render();return}
   if(k==="peq"&&S.pe){S.pe.q=t.value;const r=$("#pe-res");if(r)r.innerHTML=peResHtml(S.pe.pick);const c=$("#pe-cust");if(c)c.textContent="+ своё упражнение «"+(t.value||"…")+"»";return}
   if(k==="mefwd"&&S.mEdit){S.mEdit.plan[+t.dataset.m].fwd=t.checked;return}
   if(k==="me"&&S.mEdit){const m=S.mEdit.plan[+t.dataset.m],f=t.dataset.f;
@@ -3082,7 +3129,7 @@ async function init(){
   },()=>{ if(S.store==="loading"){S.store="local";S.sessions=ls.get("meso-sessions",[]);sortS();renderSafe()} });
   db.doc("meta/position").onSnapshot(snap=>{ const v=snap.exists?snap.data():null; S.override=v&&v.day&&SEQ.includes(v.day)?v:null; renderSafe(); },()=>{});
   db.doc("meta/cycle").onSnapshot(snap=>{ applyCycle(snap.exists?snap.data():null); renderSafe(); },()=>{});
-  db.doc("meta/settings").onSnapshot(snap=>{ S.settings=snap.exists?snap.data():null; loadProgram(S.settings&&S.settings.program); renderSafe(); },()=>{});
+  db.doc("meta/settings").onSnapshot(snap=>{ S.settings=snap.exists?snap.data():null; loadProgram(S.settings&&S.settings.program); if(!S.obAuto&&!(S.settings&&S.settings.profile)&&!S.sessions.length&&S.view==="home"){S.obAuto=1;S.view="ob"} renderSafe(); },()=>{});
   db.collection("daily").onSnapshot(snap=>{ const m={};snap.docs.forEach(d=>m[d.id]={...d.data(),date:d.id});S.daily=m;renderSafe();if(S.pendingSteps)applyStepsHash(); },()=>{});
   setTimeout(()=>{if(S.pendingSteps)applyStepsHash()},3000);
 }
@@ -3136,6 +3183,17 @@ function tgReadKeyCard(){
     <p class="foot" style="margin-top:8px">Вставь ключ в чат с Claude — он сможет сам смотреть тренировки, вес и шаги. Изменить или удалить данные по этому ключу нельзя.</p>
   </div></div>`;
 }
+
+// Удаление всех данных пользователя (GDPR)
+function tgWipeCard(){
+  if(!tgInitData()) return "";
+  return `<div class="card pos dt" data-open="${S.dt.wipe?1:0}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="wipe">Удалить мои данные</div><div class="dt-body">
+    ${S.confirmDel==="__wipe"?confirmBox("Удалить всё?","Тренировки, вес, питание и настройки удалятся навсегда. Вернуть их будет нельзя.",`data-act="tgwipe"`,"Удалить навсегда",true)
+    :`<p class="foot" style="margin-top:10px">Удалит все твои тренировки, вес, питание и настройки с сервера. Отменить нельзя.</p><button class="btn small ghost" data-act="askdel" data-id="__wipe" style="color:#ff5a4e;align-self:flex-start">Удалить все мои данные</button>`}
+  </div></div>`;
+}
+async function tgWipe(){try{toast("Удаляю…");await cloudApi("wipe");try{localStorage.clear()}catch(e){}toast("Все данные удалены");
+  setTimeout(()=>{try{Telegram.WebApp.close()}catch(e){location.reload()}},1200)}catch(e){toast("Не получилось: "+(e&&e.message||e))}}
 
 render();init();
 </script>
