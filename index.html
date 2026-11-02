@@ -1711,7 +1711,7 @@ function calcCompute(c){
   {let floor=c.sex==="f"?bmr:0;if(bmi<30){const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(c.sex==="f"?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7;floor=Math.max(floor,30*ffm+ex)}
    if(c.goal==="cut"&&kcal<floor){kcal=floor;note=note.filter(n=>!n.startsWith("Сильнее урезать"));note.push("Поставил чуть больше калорий: меньше есть небезопасно. Худеть будешь чуть медленнее, зато без вреда.")}}
   // Белок: 1,6–2,0 г/кг (Morton 2018; ISSN). При ИМТ > 30 — от желаемого веса (ИМТ 25)
-  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.8:1.6,tw=bmi>30?25*(h/100)**2:w,base=(lbm&&bf>(fem?32:25))?Math.min(lbm*1.25,tw):tw;
+  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.8:1.6,tw=bmi>30?25*(h/100)**2:w,base=lbm?Math.min(lbm*1.25,tw):tw;
   const p=Math.round(base*pK/5)*5;
   // Жиры: женщины ≥1 г/кг и ≥30% калорий, мужчины ≥0,8 г/кг и ≥25%
   let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
@@ -2442,6 +2442,13 @@ function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.
       for(const d of days){if(added>=2)break;const id=pool.find(x=>!d.ex.some(e=>e.id===x||(CATM[e.id]&&CATM[x]&&CATM[e.id].g===CATM[x].g)));if(!id)continue;const c=CATM[id];
         const e={id,name:c.name,inc:c.inc||2.5,type:c.type};if(c.eq==="bw")e.bw=true;if(c.type==="iso"&&(pg.prog||"wave")==="wave")e.prog="double";rebuildW(e,null);d.ex.push(e);added++}}}
   S.pe=old;return pg}
+// % жира по обхватам — формула ВМС США (Hodgdon & Beckett, 1984), сантиметры
+function navyBF(sex,h,waist,neck,hip){const L=Math.log10,n=x=>parseFloat(String(x||"").replace(",","."));h=n(h);waist=n(waist);neck=n(neck);hip=n(hip);
+  if(!(h>0&&waist>0&&neck>0))return null;let v;
+  if(sex==="f"){if(!(hip>0)||waist+hip-neck<=0)return null;v=495/(1.29579-.35004*L(waist+hip-neck)+.221*L(h))-450}
+  else{if(waist-neck<=0)return null;v=495/(1.0324-.19077*L(waist-neck)+.15456*L(h))-450}
+  return v>=3&&v<=60?Math.round(v*10)/10:null}
+function obBF(A){if(A.bfm==="know"){const v=parseFloat(String(A.bf||"").replace(",","."));return v>=3&&v<=60?v:null}if(A.bfm==="tape")return navyBF(A.sex,A.height,A.waist,A.neck,A.hip);return null}
 function obPreset(A){const d=+A.days;
   if(A.place==="home")return "home3";
   if(A.focus==="glute"&&d>=4)return "glute4";
@@ -2450,7 +2457,7 @@ function obPreset(A){const d=+A.days;
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
 function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{sex:S.settings.profile.sex,goal:S.settings.profile.goal,age:S.settings.profile.age,height:S.settings.profile.height,weight:String(S.settings.profile.weight||"").replace(".",",")}:{})},consent:!!(S.settings&&S.settings.consent)}),A=O.a;
   const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
-  let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
+  let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
     res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}.`:""}</p>
       ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>`:""}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
@@ -2461,13 +2468,20 @@ function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
     <label>Вес, кг<input id="ob-weight" inputmode="decimal" value="${esc(A.weight||"")}" data-in="ob" data-k="weight"></label></div>
     ${A.age&&+A.age<16?`<div class="rir" style="color:#ff5a4e">Приложение — с 16 лет.</div>`:""}</section>
+  <section class="card ob-q"><div class="eyebrow">Процент жира · можно пропустить ${qh("Нужен, чтобы точнее посчитать белок и калории. Не знаешь — измерь сантиметром или пропусти, тогда посчитаю примерно по росту и весу.")}</div>
+    <div class="pe-chips ob-ch">${[["know","Знаю"],["tape","Измерить сантиметром"],["skip","Пропустить"]].map(([v,l])=>`<button data-act="obs" data-k="bfm" data-v="${v}" aria-pressed="${(A.bfm||"skip")===v}">${l}</button>`).join("")}</div>
+    ${A.bfm==="know"?`<div class="fx-g" style="grid-template-columns:1fr 2fr"><label>% жира<input id="ob-bf" inputmode="decimal" value="${esc(A.bf||"")}" data-in="ob" data-k="bf"></label></div>`:""}
+    ${A.bfm==="tape"?`<div class="rir">Меряй утром, сантиметр плотно, но не сдавливая. <b>Талия</b> — ${A.sex==="f"?"в самом узком месте":"на уровне пупка"}, на выдохе. <b>Шея</b> — чуть ниже кадыка.${A.sex==="f"?" <b>Бёдра</b> — по самой широкой части ягодиц.":""}</div>
+      <div class="fx-g" style="grid-template-columns:repeat(${A.sex==="f"?3:2},1fr)"><label>Талия, см<input id="ob-waist" inputmode="decimal" value="${esc(A.waist||"")}" data-in="ob" data-k="waist"></label><label>Шея, см<input id="ob-neck" inputmode="decimal" value="${esc(A.neck||"")}" data-in="ob" data-k="neck"></label>${A.sex==="f"?`<label>Бёдра, см<input id="ob-hip" inputmode="decimal" value="${esc(A.hip||"")}" data-in="ob" data-k="hip"></label>`:""}</div>
+      ${!A.sex?`<div class="rir">Сначала выбери пол — формулы для мужчин и женщин разные.</div>`:obBF(A)!=null?`<div class="ob-k"><b class="num">≈ ${String(obBF(A)).replace(".",",")}%</b><span>жира по обхватам (точность ±3–4%)</span></div>`:""}`:""}
+  </section>
   ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> ${A.sex==="f"?"Согласна":A.sex==="m"?"Согласен":"Согласен(а)"}, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
   ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
 function obHandle(a,b){const O=S.ob;if(!O)return false;
   if(a==="obs"){O.a[b.dataset.k]=b.dataset.v;if(O.a.focus&&!FOCUS_BY_SEX[O.a.sex||""].includes(O.a.focus))delete O.a.focus;render();return true}
   if(a==="obx"){S.ob=null;S.view="home";render();return true}
-  if(a==="obgo"){const A=O.a,P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
-    const st={...(S.settings||{})};st.profile={...(st.profile||{}),sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:"soft",job:(st.profile&&st.profile.job)||"sit"};
+  if(a==="obgo"){const A=O.a,P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
+    const st={...(S.settings||{})};st.profile={...(st.profile||{}),bf:obBF(A)!=null?String(obBF(A)):"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:"soft",job:(st.profile&&st.profile.job)||"sit"};
     if(r)st.foodTarget={kcal:r.kcal,p:r.p,f:r.f,c:r.c};st.consent=st.consent||new Date().toISOString();
     const pg=applyFocus(presetProgram(P),A);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
     saveSettings().then(()=>{render();window.scrollTo(0,0);toast("Готово! Впиши веса, с которых начинаешь, или оставь пустыми — подберёшь на тренировке")},()=>toast("Не удалось сохранить"));return true}
