@@ -1697,13 +1697,14 @@ function calcCompute(c){
   // Кэтч — МакАрдл (по сухой массе) точен для худых и спортивных; при высоком % жира он занижает обмен, там точнее Миффлин (Frankenfield 2005)
   const bmr=lbm&&bf<=(c.sex==="m"?25:32)?370+21.6*lbm:10*w+6.25*h-5*a+(c.sex==="m"?5:-161);
   // бытовая активность по шагам + работа + силовые
-  let pal=steps<5000?1.2:steps<7500?1.3:steps<10000?1.4:steps<12500?1.5:1.6;
-  pal+=c.job==="stand"?.05:c.job==="phys"?.15:0;pal+=Math.min(6,+c.train||0)*.025;
-  const tdee=bmr*pal,bmi=w/((h/100)**2);
+  let pal=steps<5000?1.2:steps<7500?1.3:steps<10000?1.375:steps<12500?1.45:1.5;
+  pal+=c.job==="stand"?.05:c.job==="phys"?.15:0;pal+=Math.min(6,+c.train||0)*.02;
+  // Если есть 2 недели записей еды и веса — берём реальный расход вместо формулы
+  const tdee=c.tdeeReal>0?c.tdeeReal:bmr*pal,bmi=w/((h/100)**2);
   const rate={soft:.5,std:.75,fast:1}[c.pace]||.75;let kcal,note=[];
   // Дефицит: % веса в неделю, но не больше 20% расхода — так легче держаться без срывов
   if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.2;if(def>cap){def=cap;note.push("Сильнее урезать калории небезопасно — поставил максимум, который можно.")}kcal=tdee-def}
-  else if(c.goal==="recomp")kcal=tdee*.9;else if(c.goal==="keep")kcal=tdee;else kcal=tdee*1.08;
+  else if(c.goal==="recomp")kcal=tdee*.9;else if(c.goal==="keep")kcal=tdee;else kcal=tdee+Math.min(300,tdee*.08);
   const minK=c.sex==="m"?1500:1200;if(kcal<minK){kcal=minK;note.push(`Ниже ${minK} ккал опускаться не стоит — поставил минимум.`)}
   if(kcal<bmr&&c.goal==="cut")note.push("Калорий очень мало. Держи так не дольше 4–6 недель, потом неделю ешь больше.");
   if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("У тебя и так мало веса — худеть не стоит. Лучше держать вес или набирать.");
@@ -1712,23 +1713,23 @@ function calcCompute(c){
   // Защита: у женщин на сушке не ниже базового обмена; у всех — не меньше ~30 ккал на кг сухой массы после тренировок (Loucks 2003, RED-S)
   {let floor=c.sex==="f"?bmr:0;if(bmi<30){const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(c.sex==="f"?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7;floor=Math.max(floor,(c.sex==="f"?30:25)*ffm+ex)} // у мужчин порог ниже (~25), у женщин 30 — данные по женщинам надёжнее
    if(c.goal==="cut"&&kcal<floor){kcal=floor;note=note.filter(n=>!n.startsWith("Сильнее урезать"));note.push("Поставил чуть больше калорий: меньше есть небезопасно. Худеть будешь чуть медленнее, зато без вреда.")}}
-  // Белок: 1,6–2,0 г/кг (Morton 2018; ISSN). При ИМТ > 30 — от желаемого веса (ИМТ 25)
-  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.8:1.6,tw=bmi>30?25*(h/100)**2:w,base=lbm?Math.min(lbm*1.25,tw):tw;
+  // Белок: 1,8–2,0 г/кг — верх диапазона Morton 2018/ISSN, с запасом на то, что часть белка из круп (хуже аминокислотный состав). При ИМТ > 30 — от желаемого веса (ИМТ 25)
+  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.9:1.8,tw=bmi>30?25*(h/100)**2:w,base=lbm?Math.min(lbm*1.25,tw):tw;
   const p=Math.round(base*pK/5)*5;
   // Жиры: женщины ≥1 г/кг и ≥30% калорий, мужчины ≥0,8 г/кг и ≥25%
   let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
   let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
   kcal=Math.round((p*4+f*9+carb*4)/10)*10;
-  return {bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
+  return {kat:!!(lbm&&bf<=(c.sex==="m"?25:32)),real:c.tdeeReal>0,bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
     perWeek:c.goal==="cut"?Math.round((tdee-kcal)*7/7700*100)/100:c.goal==="gain"?Math.round((kcal-tdee)*7/7700*100)/100:0}}
-function calcResHTML(){const c=S.calc,r=calcCompute(c);
+function calcResHTML(){const mt=maintenance(),c={...S.calc,tdeeReal:mt&&mt.tdee},r=calcCompute(c);
   if(!r)return `<div class="w-empty">Заполни возраст, рост и вес — расчёт появится здесь.</div>`;
   const cur=foodTarget(today());
   return `<div class="cr-top"><div><div class="eyebrow">Норма на день ${qh("Это примерная цифра, у каждого организм свой. Поживи с ней 2 недели и посмотри на вес — трекер подскажет, если нужно поправить.")}</div><div class="w-big num">${big(r.kcal)}<small> ккал</small></div></div>
     <div class="w-delta" data-t="up"><b class="num">${c.goal==="cut"?"−"+String(r.perWeek).replace(".",",")+" кг":c.goal==="gain"?"+"+String(r.perWeek).replace(".",",")+" кг":"≈ 0 кг"}</b><span>в неделю</span></div></div>
   <div class="cr-mac"><div><b class="num">${r.p}</b><span>белок, г</span><em>${String(Math.round(r.p/parseFloat(String(c.weight).replace(",","."))*10)/10).replace(".",",")} г/кг</em></div><div><b class="num">${r.f}</b><span>жиры, г</span><em>${Math.round(r.f*9/r.kcal*100)}% ккал</em></div><div><b class="num">${r.c}</b><span>углеводы, г</span><em>${Math.round(r.c*4/r.kcal*100)}% ккал</em></div></div>
-  <div class="w-weeks"><div class="w-row"><span>Базовый обмен${r.lbm?" (Кэтч-МакАрдл, по сухой массе)":" (Миффлин-Сан Жеор)"}</span><span class="num">${big(r.bmr)}</span><span>ккал</span></div>
-    <div class="w-row"><span>Расход с активностью · ×${String(r.pal).replace(".",",")}</span><span class="num">${big(r.tdee)}</span><span>ккал</span></div>
+  <div class="w-weeks"><div class="w-row"><span>Базовый обмен${r.kat?" (по сухой массе)":""}</span><span class="num">${big(r.bmr)}</span><span>ккал</span></div>
+    <div class="w-row"><span>${r.real?"Расход по твоим записям за 2 недели":"Расход с активностью · ×"+String(r.pal).replace(".",",")}</span><span class="num">${big(r.tdee)}</span><span>ккал</span></div>
     <div class="w-row"><span>ИМТ${r.lbm?" · сухая масса":""}</span><span class="num">${String(Math.round(r.bmi*10)/10).replace(".",",")}${r.lbm?" · "+kgF(r.lbm)+" кг":""}</span><span></span></div></div>
   ${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}
   
@@ -1908,7 +1909,7 @@ function goalBlock(sel){const ct=S.settings&&S.settings.foodTarget,G=goalNums(se
   if(S.tgEdit)return `<div class="fx-panel"><div class="eyebrow">Цель на день ${qh("Сколько съесть за день: калории, белки (Б), жиры (Ж) и углеводы (У). Калории можно не писать — посчитаю сам.")}</div>
     <div class="fx-g" style="grid-template-columns:repeat(4,1fr)">${[["k","ккал",ct&&ct.kcal],["p","Б, г",ct&&ct.p],["f","Ж, г",ct&&ct.f],["c","У, г",ct&&ct.c]].map(([k,l,v])=>`<label>${l}<input id="tg-${k}" inputmode="numeric" value="${v||""}"></label>`).join("")}</div>
     <div class="me-row"><button class="btn small" data-act="tgsave">Сохранить цель</button><button class="link" data-act="tgcancel">Отмена</button></div></div>`;
-  return `<div class="goal-row"><span><span class="eyebrow">Цель на день</span><b class="num">${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c}</b></span><button class="link" data-act="tgedit">Изменить</button></div>`}
+  return `<div class="goal-row"><span><span class="eyebrow">Цель на день</span><b class="num">${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c}</b><span class="rir">Из них белка хотя бы ${Math.round(G.p*.65/5)*5} г — из мяса, рыбы, яиц или молочного</span></span><button class="link" data-act="tgedit">Изменить</button></div>`}
 const PINI='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 16v5"/></svg>';
 async function saveSettings(){return S.store==="db"?S.db.doc("meta/settings").set(S.settings):ls.set("meso-settings",S.settings)}
 function mealsCard(sel){
@@ -2463,7 +2464,7 @@ function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{
   const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
   let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:(OB_ACT[A.act]||OB_ACT.low).job,train:+A.days,steps:(OB_ACT[A.act]||OB_ACT.low).steps});
     res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}.`:""}</p>
-      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>`:""}
+      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div><div class="rir">Из ${r.p} г белка хотя бы ${Math.round(r.p*.65/5)*5} г — из мяса, рыбы, яиц или молочного: в крупах и хлебе белок есть, но мышцам он подходит хуже.</div>`:""}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">Пара минут — и подберу программу и питание</div></div></div>
   ${OB_Q.map(q=>({...q,o:q.k==="focus"?FOCUS_BY_SEX[A.sex||""].map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${A.sex==="f"?"готова":A.sex==="m"?"готов":"готов(а)"} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
@@ -3030,7 +3031,7 @@ document.addEventListener("click",ev=>{
     if(!k){toast("Впиши калории или БЖУ");return}if(k>8000||p>500||f>400||c>1000){toast("Проверь числа — что-то слишком большое");return}
     saveDay({...dayDoc(d),food:{kcal:Math.round(k),p:Math.round(p),f:Math.round(f),c:Math.round(c)}}).then(()=>{render();toast(`Питание записано: ${Math.round(k).toLocaleString("ru-RU")} ккал`)})}
   else if(a==="cset"){S.calc[b.dataset.k]=b.dataset.k==="train"?+b.dataset.v:b.dataset.v;render()}
-  else if(a==="capply"){const r=calcCompute(S.calc);if(!r)return;S.settings={...(S.settings||{}),foodTarget:{kcal:r.kcal,p:r.p,f:r.f,c:r.c},profile:{...S.calc}};
+  else if(a==="capply"){const mt=maintenance(),r=calcCompute({...S.calc,tdeeReal:mt&&mt.tdee});if(!r)return;S.settings={...(S.settings||{}),foodTarget:{kcal:r.kcal,p:r.p,f:r.f,c:r.c},profile:{...S.calc}};
     (S.store==="db"?S.db.doc("meta/settings").set(S.settings):Promise.resolve(ls.set("meso-settings",S.settings))).then(()=>{S.view="activity";render();window.scrollTo(0,0);toast(`Цель: ${r.kcal.toLocaleString("ru-RU")} ккал · Б ${r.p} Ж ${r.f} У ${r.c}`)},()=>toast("Не удалось сохранить"))}
   else if(a==="creset"){const st={...(S.settings||{})};delete st.foodTarget;S.settings=st;
     (S.store==="db"?S.db.doc("meta/settings").set(st):Promise.resolve(ls.set("meso-settings",st))).then(()=>{render();toast("Вернул цель из плана")})}
