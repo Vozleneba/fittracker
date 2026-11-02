@@ -1715,8 +1715,8 @@ function calcCompute(c){
   const tdee=c.tdeeReal>0?c.tdeeReal:bmr*pal,bmi=w/((h/100)**2);
   const rate={soft:.5,std:.75,fast:1}[c.pace]||.75;let kcal,note=[];
   // Дефицит: % веса в неделю, но не больше 20% расхода — так легче держаться без срывов
-  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.2;if(def>cap){def=cap;note.push("Сильнее урезать калории небезопасно — поставил максимум, который можно.")}kcal=tdee-def}
-  else if(c.goal==="recomp")kcal=tdee*.9;else if(c.goal==="keep")kcal=tdee;else kcal=tdee+(c.pace==="lean"?Math.min(175,tdee*.08):Math.min(300,tdee*.13));
+  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*(a<18?.1:.2);if(def>cap){def=cap;note.push("Сильнее урезать калории небезопасно — поставил максимум, который можно.")}kcal=tdee-def}
+  else if(c.goal==="recomp")kcal=tdee*(a<18?.95:.9);else if(c.goal==="keep")kcal=tdee;else kcal=tdee+(c.pace==="lean"?Math.min(175,tdee*.08):Math.min(300,tdee*.13));
   // Здоровье: беременность, кормление и сбитый цикл — без дефицита; почки — меньше белка
   const H=new Set(Array.isArray(c.health)?c.health:String(c.health||"").split(",").filter(Boolean)),hnote=[];
   if(H.has("preg")){kcal=tdee;hnote.push("Во время беременности не худеем — поставил калории на поддержание. Со 2-го триместра обычно добавляют 350–450 ккал. Питание и нагрузки согласуй с врачом.")}
@@ -1729,21 +1729,26 @@ function calcCompute(c){
   if(H.has("other")){const t=String(c.healthText||"").trim(),lt=t.toLowerCase();
     for(const [re,n] of HEALTH_KW)if(re.test(lt))hnote.push(n);
     hnote.push(t?`«${t.slice(0,80)}» — покажи эти цифры своему врачу: он знает твой случай лучше.`:"Покажи эти цифры своему врачу — он знает твой случай лучше.")}
-  const noDef=H.has("preg")||H.has("bfeed")||H.has("cycle");
+  // Худым (ИМТ < 20) худеть не нужно — только поддержание: форму меняют силовые и белок
+  const thin=bmi<20&&(c.goal==="cut"||c.goal==="recomp")&&!H.has("preg")&&!H.has("bfeed");
+  if(thin){kcal=tdee;hnote.unshift("При твоём весе худеть не нужно — поставил калории на поддержание. Форму изменят силовые и белок: жира станет меньше, мышц — больше.")}
+  else if(a<18&&c.goal==="cut")hnote.push("До 18 лет организм ещё растёт — дефицит небольшой, худеть будешь плавно.");
+  const noDef=H.has("preg")||H.has("bfeed")||H.has("cycle")||thin;
   const minK=c.sex==="m"?1500:1200;if(kcal<minK){kcal=minK;note.push(`Ниже ${minK} ккал опускаться не стоит — поставил минимум.`)}
   if(kcal<bmr&&c.goal==="cut"&&!noDef)note.push("Калорий очень мало. Держи так не дольше 4–6 недель, потом неделю ешь больше.");
-  if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("У тебя и так мало веса — худеть не стоит. Лучше держать вес или набирать.");
   if(bf&&bf<(c.sex==="m"?12:20)&&c.goal==="cut"&&c.pace!=="soft")note.push("Жира уже мало — безопаснее худеть медленно.");
   // белок: на дефиците выше; при высоком % жира считаем от сухой массы
   // Защита: у женщин на сушке не ниже базового обмена; у всех — не меньше ~30 ккал на кг сухой массы после тренировок (Loucks 2003, RED-S)
   {let floor=c.sex==="f"?bmr:0;if(bmi<30){const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(c.sex==="f"?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7;floor=Math.max(floor,(c.sex==="f"?30:25)*ffm+ex)} // у мужчин порог ниже (~25), у женщин 30 — данные по женщинам надёжнее
    if(c.goal==="cut"&&!noDef&&kcal<floor){kcal=floor;note=note.filter(n=>!n.startsWith("Сильнее урезать"));note.push("Поставил чуть больше калорий: меньше есть небезопасно. Худеть будешь чуть медленнее, зато без вреда.")}}
   // Белок: 1,8–2,0 г/кг — верх диапазона Morton 2018/ISSN, с запасом на то, что часть белка из круп (хуже аминокислотный состав). При ИМТ > 30 — от желаемого веса (ИМТ 25)
-  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.9:1.8,tg=num(c.target),tw=bmi>30?Math.max(25*(h/100)**2,tg>0&&tg<w?tg:0):w,base=lbm?Math.min(lbm*1.25,tw):tw;
+  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.9:1.8,tg=num(c.target),tw=bmi>25?Math.max(25*(h/100)**2,tg>0&&tg<w?tg:0):w,base=lbm?Math.min(lbm*1.25,tw):tw;
   const gout=H.has("other")&&/подагр|мочев.{0,3}кислот/.test(String(c.healthText||"").toLowerCase()),p=Math.round(base*(H.has("kidney")?1:gout?Math.min(pK,1.4):pK)/5)*5;
   // Жиры: женщины ≥1 г/кг и ≥30% калорий, мужчины ≥0,8 г/кг и ≥25%
   let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
-  let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
+  let carb=Math.round((kcal-p*4-f*9)/4/5)*5;
+  // при малой калорийности (часто женщины 45+) жир можно опустить до 0,8 г/кг — чтобы осталось на углеводы
+  if(carb<100&&fem){f=Math.round(Math.max(tw*.8,kcal*.25/9)/5)*5;carb=Math.round((kcal-p*4-f*9)/4/5)*5}if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
   kcal=Math.round((p*4+f*9+carb*4)/10)*10;
   return {kat:!!(lbm&&bf<=(c.sex==="m"?25:32)),real:c.tdeeReal>0,bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
     hnote,perWeek:noDef?0:c.goal==="cut"?Math.round((tdee-kcal)*7/7700*100)/100:c.goal==="gain"?Math.round((kcal-tdee)*7/5500*100)/100:0,...calcEta(c,w,h,tdee,kcal,noDef)}}
@@ -2380,7 +2385,17 @@ const CAT=[
  ["c_pallof","Жим Паллофа","abs","cable","iso","absstab",2.5],
  ["c_wood","Дровосек на блоке","abs","cable","iso","absrot",2.5],
  ["c_farmer","Прогулка фермера (кг на гантель)","forearms","db","iso","carry",2],
- ["c_revwrist","Разгибания кистей со штангой","forearms","bb","iso","wrist",1]
+ ["c_revwrist","Разгибания кистей со штангой","forearms","bb","iso","wrist",1],
+ ["c_bwsquat","Приседания без веса","quads","bw","base","squat",2.5],
+ ["c_bwlunge","Выпады без веса","quads","bw","base","lunge",2.5],
+ ["c_bwsplit","Болгарские выпады без веса","quads","bw","base","lunge",2.5],
+ ["c_bwslrdl","Румынская тяга на одной ноге без веса","hams","bw","base","hinge",2.5],
+ ["c_slbridge","Ягодичный мост на одной ноге","glutes","bw","iso","thrust",2.5],
+ ["c_pike","Отжимания с поднятым тазом (на плечи)","shoulders","bw","base","ovpress",2.5],
+ ["c_superman","«Супермен» лёжа на животе","back","bw","iso","hyper",2.5],
+ ["c_benchdip","Обратные отжимания от стула","triceps","bw","iso","tripress",2.5],
+ ["c_bwcalf","Подъём на носки на ступеньке","calves","bw","iso","calf",2.5],
+ ["c_fcrunch","Скручивания на полу","abs","bw","iso","absflex",2.5]
 ];
 const CATM=Object.fromEntries(CAT.map(r=>[r[0],{id:r[0],name:r[1],m:r[2],eq:r[3],type:r[4],g:r[5],inc:r[6]}]));
 // Замены из каталога: та же группа движения, без коэффициента — вес подбором
@@ -2438,7 +2453,11 @@ const PRESETS=[
  {id:"home3",name:"Дома с гантелями",days:3,lvl:"Новичок",prog:"double",d:"Только гантели и скамья. Подходит для старта или когда нет зала.",
   plan:[["Дом A",1,"Всё тело",["c_goblet","c_dbbench","c_dbrow","c_dbsp","c_dbcurl"]],
         ["Дом B",3,"Всё тело",["c_dbrdl","c_pushup","c_sealrow","c_dblat","c_dbohe"]],
-        ["Дом C",5,"Всё тело",["c_bss","c_dbinc","c_dbrear","c_hammer","c_plank"]]]}
+        ["Дом C",5,"Всё тело",["c_bss","c_dbinc","c_dbrear","c_hammer","c_plank"]]]},
+ {id:"home0",name:"Дома без инвентаря",days:3,lvl:"Новичок",prog:"double",d:"Только свой вес — для тяг нужен крепкий стол или перекладина. Сначала добавляешь повторы, потом берёшь вариант сложнее.",
+  plan:[["Дом A",1,"Всё тело",["c_bwsquat","c_pushup","c_invrow","c_glbridge","c_fcrunch"]],
+        ["Дом B",3,"Всё тело",["c_bwlunge","c_pike","c_superman","c_benchdip","c_bwcalf"]],
+        ["Дом C",5,"Всё тело",["c_bwsplit","c_dmpush","c_invrow","c_slbridge","c_plank"]]]}
 ];
 function presetProgram(P){const pg={v:1,kind:"wave",days:[]};if(P.prog!=="wave")pg.prog=P.prog;const old=S.pe;S.pe={pg};
   P.plan.forEach(([title,dow,sub,ids],i)=>{const D={key:P.id+(i+1),title,sub,dow,ex:[]};
@@ -2450,11 +2469,12 @@ function presetsBlock(){return `<section class="card pe-presets"><div class="pe-
     <button class="btn small" data-act="pepick" data-id="${P.id}">Выбрать</button></div>`).join("")}</section>`}
 // ===== Анкета: первый вход или «Подобрать по анкете»
 const OB_Q=[
- {k:"goal",t:"Твоя цель",o:[["cut","Сбросить жир"],["gain","Набрать мышцы"],["recomp","Подтянуть фигуру"],["keep","Держать форму"]]},
  {k:"sex",t:"Пол",o:[["m","Мужской"],["f","Женский"]]},
+ {k:"goal",t:"Твоя цель",o:[["cut","Сбросить жир"],["gain","Набрать мышцы"],["recomp","Подтянуть фигуру"],["keep","Держать форму"]]},
  {k:"exp",t:"Сколько тренируешься",o:[["new","Только начинаю"],["mid","От полугода до 2 лет"],["pro","Больше 2 лет"]]},
  {k:"days",t:"Сколько раз в неделю готов тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
- {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"]]},
+ {k:"time",t:"Сколько времени на тренировку",o:[["45","До 45 минут"],["60","Около часа"],["90","Больше часа"]]},
+ {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"],["bw","Дома без инвентаря"]]},
  {k:"job",t:"Работа или учёба",o:[["sit","Сидячая"],["stand","На ногах"],["phys","Физическая"]]},
  {k:"focus",t:"Акцент",o:[]}];
 // ===== Акценты анкеты: меняют подходы, повторы, прогрессию и добавляют упражнения
@@ -2465,6 +2485,8 @@ const FOCUS={
  chest:{n:"Грудь",m:["chest"]},back:{n:"Спина",m:["back"]},shoulders:{n:"Плечи",m:["shoulders"]},arms:{n:"Руки",m:["biceps","triceps"]},legs:{n:"Ноги",m:["quads","hams"]},
  glute:{n:"Ягодицы и ноги",m:["glutes","hams"]},upper:{n:"Верх тела и осанка",m:["back","shoulders"]}};
 const FOCUS_ALL=["even","strength","hyp","chest","back","shoulders","arms","legs","glute","upper"],FOCUS_BY_SEX={m:FOCUS_ALL,f:FOCUS_ALL,"":FOCUS_ALL};
+const focusOpts=A=>A.exp==="new"?FOCUS_ALL.filter(k=>k!=="strength"&&k!=="hyp"):FOCUS_ALL;
+const EXTRA_BW={chest:["c_dmpush","c_pushup"],back:["c_invrow","c_superman"],shoulders:["c_pike"],triceps:["c_benchdip","c_dmpush"],quads:["c_bwsplit","c_bwlunge"],glutes:["c_slbridge","c_glbridge"],hams:["c_bwslrdl"]};
 const EXTRA_BY_M={chest:{gym:["c_cfly","c_pecdeck","c_dbinc"],home:["c_dbfly","c_pushup"]},back:{gym:["c_cgpd","c_1crow","c_sapd"],home:["c_dbrow","c_dbpullover"]},
  shoulders:{gym:["c_clat","c_rdm","c_facepull"],home:["c_dblat","c_dbrear"]},biceps:{gym:["c_bayes","c_preacher"],home:["c_inccurl","c_conc"]},
  triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},quads:{gym:["c_legext","c_hack","c_1lp"],home:["c_goblet","c_stepup"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc","c_goodm","c_glhr"],home:["c_dbrdl","c_slrdl"]}};
@@ -2477,11 +2499,40 @@ function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.
     if(pg.prog==="linear"){pg.prog="double";each(e=>{if(e.prog==="double")delete e.prog;delete e.rr;rebuildW(e,null)})}
     each(e=>{const c=CATM[e.id];if(!c||!target.has(c.m))return;if(e.rr){e.rr=[Math.min(5,e.rr[0]+1),e.rr[1],e.rr[2]];rebuildW(e,null)}else{e.w=e.w.map((w,i)=>i<4?[Math.min(5,w[0]+1),w[1],w[2],w[3]]:w)}});
     // по одному доп. упражнению на целевую мышцу в двух днях
-    for(const m of F.m){const pool=(EXTRA_BY_M[m]||{})[home?"home":"gym"]||[];let added=0;
-      const days=pg.days.slice().sort((a,b)=>b.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length-a.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length);
+    for(const m of F.m){const pool=A.place==="bw"?(EXTRA_BW[m]||[]):(EXTRA_BY_M[m]||{})[home?"home":"gym"]||[];let added=0;
+      const has=d=>d.ex.some(e=>CATM[e.id]&&CATM[e.id].m===m),dd=pg.days.some(has)?pg.days.filter(has):pg.days;
+      const days=dd.slice().sort((a,b)=>b.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length-a.ex.filter(e=>CATM[e.id]&&CATM[e.id].m===m).length);
       for(const d of days){if(added>=2)break;const id=pool.find(x=>!d.ex.some(e=>e.id===x||(CATM[e.id]&&CATM[x]&&CATM[e.id].g===CATM[x].g)));if(!id)continue;const c=CATM[id];
         const e={id,name:c.name,inc:c.inc||2.5,type:c.type};if(c.eq==="bw")e.bw=true;if(c.type==="iso"&&(pg.prog||"wave")==="wave")e.prog="double";rebuildW(e,null);d.ex.push(e);added++}}}
   S.pe=old;return pg}
+// ===== Подгонка программы под травмы, время и возраст
+const INJ={
+ back:{n:"спину",ban:{c_dl:["c_mthrust","c_hipthrust","c_glbridge"],c_rackpull:["c_mrow","c_sealrow","c_invrow"],c_bbrow:["c_mrow","c_sealrow","c_invrow"],c_tbar:["c_mrow","c_sealrow"],c_squat:["c_lp","c_hack","c_goblet","c_bwsquat"],c_fsquat:["c_lp","c_hack","c_goblet"],c_goodm:["c_llc","c_slc"],c_rdl:["c_slc","c_llc","c_glbridge"],c_dbrdl:["c_glbridge"],c_slrdl:["c_glbridge"],c_bwslrdl:["c_glbridge"],c_ohp:["c_dbsp","c_mshp","c_pike"],c_kbswing:["c_glbridge"],c_dbrow:["c_sealrow","c_mrow"]}},
+ knee:{n:"колени",ban:{c_squat:["c_lp","c_hipthrust","c_glbridge"],c_fsquat:["c_lp","c_hipthrust","c_glbridge"],c_smsquat:["c_lp","c_hipthrust"],c_hack:["c_lp","c_mthrust","c_glbridge"],c_bss:["c_mthrust","c_hipthrust","c_glbridge"],c_lunge:["c_mthrust","c_hipthrust","c_glbridge"],c_wlunge:["c_mthrust","c_kickback"],c_legext:["c_slc","c_llc","c_slbridge"],c_sissy:["c_glbridge"],c_goblet:["c_dbrdl","c_glbridge"],c_kbgob:["c_kbswing","c_glbridge"],c_stepup:["c_glbridge"],c_bwsquat:["c_glbridge"],c_bwlunge:["c_slbridge"],c_bwsplit:["c_slbridge","c_glbridge"],c_1lp:["c_abduct","c_slbridge"]}},
+ shoulder:{n:"плечи",ban:{c_ohp:["c_mlat","c_clat","c_dblat"],c_dbsp:["c_mlat","c_clat","c_dblat"],c_smsp:["c_mlat","c_clat","c_dblat"],c_mshp:["c_mlat","c_clat","c_dblat"],c_kbsp:["c_dblat","c_bandpa"],c_pike:["c_bandpa","c_superman"],c_dips:["c_mchest","c_dbbench","c_pushup"],c_benchdip:["c_dmpush","c_pushup"],c_uprow:["c_facepull","c_dbrear","c_bandpa"],c_bench:["c_mchest","c_dbbench"],c_incbench:["c_minc","c_dbinc"],c_skull:["c_rope","c_bar","c_kickt"],c_cohe:["c_rope","c_kickt"],c_dbohe:["c_kickt","c_dmpush"],c_cgbench:["c_dmpush","c_kickt"]}}};
+const PLACE_EQ={gym:null,home:["db","bw","band","kb"],bw:["bw"]};
+function obInj(A){return (A.health||[]).filter(k=>INJ[k])}
+function applyInjury(pg,A){const inj=obInj(A);if(!inj.length)return pg;const eq=PLACE_EQ[A.place||"gym"],old=S.pe;S.pe={pg};
+  const banned=id=>inj.some(k=>INJ[k].ban[id]);
+  pg.days.forEach(d=>{const out=[];d.ex.forEach((e,ei)=>{const k=inj.find(k=>INJ[k].ban[e.id]);if(!k){out.push(e);return}
+    const near=[...out,...d.ex.slice(ei+1)];
+    const id=inj.flatMap(j=>INJ[j].ban[e.id]||[]).find(x=>{const c=CATM[x];return c&&(!eq||eq.includes(c.eq))&&!banned(x)&&!near.some(y=>y.id===x||(CATM[y.id]&&CATM[y.id].g===c.g))});
+    if(!id)return;const c=CATM[id],n={id,name:c.name,inc:c.inc||2.5,type:c.type,note:`Бережём ${INJ[k].n}: если болит — уменьши вес и амплитуду.`};
+    if(c.eq==="bw")n.bw=true;if(e.prog)n.prog=e.prog;else if(c.type==="iso"&&(pg.prog||"wave")==="wave")n.prog="double";rebuildW(n,null);out.push(n)});d.ex=out});
+  S.pe=old;return pg}
+// Время: убираем изоляцию с конца, акцентные мышцы — в последнюю очередь, базу не трогаем
+function applyTime(pg,A){const cap={45:5,60:6,90:8}[A.time];if(!cap)return pg;const tm=new Set((FOCUS[A.focus]||{}).m||[]);
+  pg.days.forEach(d=>{while(d.ex.length>cap){let i=-1;for(const f of [e=>e.type==="iso"&&!tm.has((CATM[e.id]||{}).m),e=>e.type==="iso",()=>true]){for(let j=d.ex.length-1;j>=0;j--)if(f(d.ex[j])){i=j;break}if(i>=0)break}d.ex.splice(i,1)}});return pg}
+// Свой вес: повторов больше; 50+ новичок — первые 2 недели на подход меньше
+function applyLevel(pg,A){pg.days.forEach(d=>d.ex.forEach(e=>{
+    if(A.place==="bw"&&e.bw&&(e.prog||pg.prog)!=="wave"){e.rr=[3,10,20];const old=S.pe;S.pe={pg};rebuildW(e,null);S.pe=old}
+    if(+A.age>=50&&A.exp==="new")e.w=e.w.map((w,i)=>i<2?[Math.max(2,w[0]-1),w[1],w[2],w[3]]:w)}));return pg}
+function obProgram(A){const P=PRESETS.find(x=>x.id===obPreset(A));return applyLevel(applyTime(applyInjury(applyFocus(presetProgram(P),A),A),A),A)}
+function obProgNotes(A){const n=[],inj=obInj(A);
+  if(inj.length)n.push(`Убрал упражнения, которые нагружают ${inj.map(k=>INJ[k].n).join(" и ")}, и поставил безопасные замены.`);
+  if(A.time==="45")n.push("Под 45 минут — до 5 упражнений за тренировку.");
+  if(+A.age>=50&&A.exp==="new")n.push("Первые 2 недели — на подход меньше и лёгкие веса: суставам и связкам нужно время привыкнуть.");
+  return n}
 // % жира по обхватам — формула ВМС США (Hodgdon & Beckett, 1984), сантиметры
 function navyBF(sex,h,waist,neck,hip){const L=Math.log10,n=x=>parseFloat(String(x||"").replace(",","."));h=n(h);waist=n(waist);neck=n(neck);hip=n(hip);
   if(!(h>0&&waist>0&&neck>0))return null;let v;
@@ -2491,39 +2542,40 @@ function navyBF(sex,h,waist,neck,hip){const L=Math.log10,n=x=>parseFloat(String(
 function obBF(A){if(A.bfm==="know"){const v=parseFloat(String(A.bf||"").replace(",","."));return v>=3&&v<=60?v:null}if(A.bfm==="tape")return navyBF(A.sex,A.height,A.waist,A.neck,A.hip);return null}
 const OB_ACT={low:{steps:4000,job:"sit"},walk:{steps:10000,job:"sit"},stand:{steps:9000,job:"stand"},phys:{steps:9000,job:"phys"}};
 const OB_PACE={cut:[["soft","Спокойно"],["std","Оптимально"],["fast","Быстро"]],gain:[["lean","Без лишнего жира · советую"],["fast","Быстрее, но с жиром"]]};
-const OB_HEALTH_F=[["preg","Беременность"],["bfeed","Кормлю грудью"],["cycle","Цикл сбился или пропал"]],OB_HEALTH=[["diab","Диабет"],["thyr","Щитовидка"],["kidney","Почки"],["heart","Сердце или давление"],["other","Другое хроническое"]];
+const OB_HEALTH_F=[["preg","Беременность"],["bfeed","Кормлю грудью"],["cycle","Цикл сбился или пропал"]],OB_HEALTH=[["back","Больная спина"],["knee","Больные колени"],["shoulder","Больные плечи"],["diab","Диабет"],["thyr","Щитовидка"],["kidney","Почки"],["heart","Сердце или давление"],["other","Другое хроническое"]];
 const obNum=v=>parseFloat(String(v??"").replace(",","."));
 function obSteps(A){return A.steps==="?"?5000:obNum(A.steps)}
-function obCalc(A){return calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,train:+A.days,steps:obSteps(A),health:(A.health||[]).filter(x=>x!=="none"),healthText:A.hother||"",target:A.target||""})}
+function obCalc(A){return calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:OB_PACE[A.goal]?(A.goal==="cut"&&+A.age<18&&A.pace==="fast"?"std":A.pace):"std",job:A.job,train:+A.days,steps:obSteps(A),health:(A.health||[]).filter(x=>x!=="none"),healthText:A.hother||"",target:A.target||""})}
 function obReady(A,O){return OB_Q.every(q=>A[q.k])&&(!OB_PACE[A.goal]||A.pace)&&(A.health||[]).length&&obSteps(A)>=300&&obSteps(A)<=50000&&+A.age>=16&&obNum(A.height)>=130&&obNum(A.weight)>=35&&O.consent}
 function obPreset(A){const d=+A.days;
+  if(A.place==="bw")return "home0";
   if(A.place==="home")return "home3";
   if(A.focus==="glute"&&d>=4)return "glute4";
   if(A.exp==="new")return d>=4?"ul4":"fb3";
   if(d<=3)return A.exp==="pro"?"ppl3":"fb3";
   if(d===4)return "ul4";if(d===5)return A.exp==="pro"?"split5":"ul4";return A.exp==="pro"?"ppl6":"ul4"}
-function obPaceHtml(A){const o=OB_PACE[A.goal];if(!o)return "";const cut=A.goal==="cut";
+function obPaceHtml(A){let o=OB_PACE[A.goal];if(!o)return "";const cut=A.goal==="cut";if(cut&&+A.age>0&&+A.age<18)o=o.filter(x=>x[0]!=="fast");
   return `<section class="card ob-q"><div class="eyebrow">${cut?"Как быстро худеть":"Как быстро набирать"} ${qh(cut?"Спокойно — минус 0,5% веса в неделю, оптимально — 0,75%, быстро — 1%.\nСильный дефицит не сжигает больше жира — начинают уходить мышцы, растёт голод и риск сорваться.":"Без лишнего жира — +150–200 ккал к расходу, быстрее — около +300.\nБольше калорий не ускоряет рост мышц: всё лишнее уходит в жир.")}</div>
     <div class="pe-chips ob-ch">${o.map(([v,l])=>`<button data-act="obs" data-k="pace" data-v="${v}" aria-pressed="${A.pace===v}">${l}</button>`).join("")}</div>
     ${A.pace==="fast"?`<div class="rir">${cut?"Быстрее — не значит лучше: при большом дефиците уходят мышцы, а жира сгорает не больше.":"Мышцы быстрее расти не будут — лишнее пойдёт в жир."}</div>`:""}</section>`}
 function obHealthHtml(A){const h=A.health||[],opts=[...(A.sex==="f"?OB_HEALTH_F:[]),...OB_HEALTH,["none","Ничего из этого"]];
-  return `<section class="card ob-q"><div class="eyebrow">Есть что-то из этого? ${qh("Спрашиваю не для галочки — это меняет расчёт.\nБеременность, кормление грудью: худеть нельзя, ставлю поддержание.\nСбитый цикл часто значит, что еды не хватает — тогда калории не урезаю.\nБолезни почек: много белка может навредить — снижаю белок.\nОстальное: считаю как обычно и подскажу, что обсудить с врачом.")}</div>
-    <div class="pe-chips ob-ch">${opts.map(([v,l])=>`<button data-act="obh" data-v="${v}" aria-pressed="${h.includes(v)}">${l}</button>`).join("")}</div>${h.includes("other")?`<div class="fx-g" style="grid-template-columns:1fr"><label>Что именно?<input id="ob-hother" placeholder="например, гастрит" value="${esc(A.hother||"")}" data-in="ob" data-k="hother" maxlength="80"></label></div>`:""}${!A.sex?`<div class="rir">Сначала выбери пол.</div>`:""}</section>`}
+  return `<section class="card ob-q"><div class="eyebrow">Есть что-то из этого? ${qh("Спрашиваю не для галочки — это меняет расчёт.\nБеременность, кормление грудью: худеть нельзя, ставлю поддержание.\nСбитый цикл часто значит, что еды не хватает — тогда калории не урезаю.\nБолезни почек: много белка может навредить — снижаю белок.\nСпина, колени, плечи: убираю из программы упражнения, которые их нагружают, и ставлю замены.\nОстальное: считаю как обычно и подскажу, что обсудить с врачом.")}</div>
+    <div class="pe-chips ob-ch">${opts.map(([v,l])=>`<button data-act="obh" data-v="${v}" aria-pressed="${h.includes(v)}">${l}</button>`).join("")}</div>${h.includes("other")?`<div class="fx-g" style="grid-template-columns:1fr"><label>Что именно?<input id="ob-hother" placeholder="например, гастрит" value="${esc(A.hother||"")}" data-in="ob" data-k="hother" maxlength="80"></label></div>`:""}</section>`}
 function obStepsHtml(A){const unk=A.steps==="?";
   return `<div class="cq-l">Шагов в день ${qh("Открой «Здоровье» на iPhone, Google Fit или приложение часов и посмотри среднее за неделю. Можно примерно.")}</div><div class="fx-g" style="grid-template-columns:1fr 1fr"><label><input aria-label="Шагов в день" id="ob-steps" inputmode="numeric" placeholder="например, 7000" value="${unk?"":esc(A.steps||"")}" data-in="ob" data-k="steps" ${unk?"disabled":""}></label>
     <button class="link" data-act="obst" style="align-self:end;justify-self:start">${unk?"Впишу число":"Не знаю"}</button></div>${unk?`<div class="rir">Посчитаю как для ~5 000 шагов. Потом уточню по весу.</div>`:""}`}
 function obInit(){const p=S.settings&&S.settings.profile,a={};
   if(p){Object.assign(a,{sex:p.sex,goal:p.goal,age:p.age,height:p.height,weight:String(p.weight||"").replace(".",",")})}
   try{const st=[...Array(7)].map((_,i)=>dayDoc(addDays(today(),-i-1)).steps||0).filter(Boolean);if(st.length>=3)a.steps=String(Math.round(st.reduce((x,y)=>x+y,0)/st.length/100)*100)}catch(e){}
-  return {a,consent:!!(S.settings&&S.settings.consent)}}
+  a.focus="even";return {a,consent:!!(S.settings&&S.settings.consent)}}
 function vOnboard(){const O=S.ob||(S.ob=obInit()),A=O.a;
   const ready=obReady(A,O),g=A.sex==="f"?1:A.sex==="m"?0:2,gw=(m,f,x)=>[m,f,x][g];
   let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=obCalc(A);
-    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}.`:""}</p>
-      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div><div class="rir">Из ${r.p} г белка хотя бы ${Math.round(r.p*.65/5)*5} г — из мяса, рыбы, яиц или молочного: в крупах и хлебе белок есть, но мышцам он подходит хуже.</div>${r.eta?`<div class="rir"><b>${esc(r.eta)}</b></div>`:""}${r.hnote.map(n=>`<div class="rir">${esc(n)}</div>`).join("")}`:""}
+    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"&&!(P.id==="glute4"&&A.focus==="glute")?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}.`:""}</p>
+      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div><div class="rir">Из ${r.p} г белка хотя бы ${Math.round(r.p*.65/5)*5} г — из мяса, рыбы, яиц или молочного: в крупах и хлебе белок есть, но мышцам он подходит хуже.</div>${r.eta?`<div class="rir"><b>${esc(r.eta)}</b></div>`:""}${r.hnote.map(n=>`<div class="rir">${esc(n)}</div>`).join("")}`:""}${obProgNotes(A).map(n=>`<div class="rir">${esc(n)}</div>`).join("")}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">Пара минут — и подберу программу и питание</div></div></div>
-  ${OB_Q.map(q=>({...q,o:q.k==="focus"?FOCUS_BY_SEX[A.sex||""].map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${gw("готов","готова","готов(а)")} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div>${q.k==="job"?obStepsHtml(A):""}</section>${q.k==="goal"?obPaceHtml(A):q.k==="sex"?obHealthHtml(A):""}`).join("")}
+  ${OB_Q.map(q=>({...q,o:q.k==="focus"?focusOpts(A).map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${gw("готов","готова","готов(а)")} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div>${q.k==="job"?obStepsHtml(A):""}</section>${q.k==="goal"?obPaceHtml(A)+obHealthHtml(A):""}`).join("")}
   <section class="card ob-q"><div class="eyebrow">О тебе</div><div class="fx-g" style="grid-template-columns:repeat(3,1fr)">
     <label>Возраст<input id="ob-age" inputmode="numeric" value="${esc(A.age||"")}" data-in="ob" data-k="age"></label>
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
@@ -2540,16 +2592,16 @@ function vOnboard(){const O=S.ob||(S.ob=obInit()),A=O.a;
   ${S.settings&&S.settings.consent?"":`<label class="ob-cons"><input type="checkbox" data-in="obc" ${O.consent?"checked":""}> ${A.sex==="f"?"Согласна":A.sex==="m"?"Согласен":"Согласен(а)"}, чтобы приложение хранило мои данные (вес, тренировки, питание) — только для работы трекера. Удалить их можно в любой момент.</label>`}
   ${res||`<div class="rir" style="text-align:center">Ответь на все вопросы — внизу появится результат.</div>`}`}
 function obHandle(a,b){const O=S.ob;if(!O)return false;
-  if(a==="obs"){const k=b.dataset.k;O.a[k]=b.dataset.v;if(O.a.focus&&!FOCUS_BY_SEX[O.a.sex||""].includes(O.a.focus))delete O.a.focus;
+  if(a==="obs"){const k=b.dataset.k;O.a[k]=b.dataset.v;if(O.a.focus&&!focusOpts(O.a).includes(O.a.focus))O.a.focus="even";
     if(k==="goal"&&O.a.pace&&!(OB_PACE[O.a.goal]||[]).some(x=>x[0]===O.a.pace))delete O.a.pace;
     if(k==="sex"&&O.a.sex==="m"&&O.a.health)O.a.health=O.a.health.filter(x=>!OB_HEALTH_F.some(f=>f[0]===x));render();return true}
   if(a==="obh"){const v=b.dataset.v;let h=(O.a.health||[]).slice();if(v==="none")h=h.includes("none")?[]:["none"];else{h=h.filter(x=>x!=="none");h=h.includes(v)?h.filter(x=>x!==v):[...h,v]}O.a.health=h;render();return true}
   if(a==="obst"){O.a.steps=O.a.steps==="?"?"":"?";render();return true}
   if(a==="obx"){S.ob=null;S.view="home";render();return true}
   if(a==="obgo"){const A=O.a;if(!obReady(A,O))return true;const P=PRESETS.find(x=>x.id===obPreset(A)),r=obCalc(A);
-    const st={...(S.settings||{})};st.profile={...(st.profile||{}),bf:obBF(A)!=null?String(obBF(A)):"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,steps:String(obSteps(A)),target:A.target||"",health:(A.health||[]).filter(x=>x!=="none"),healthText:(A.health||[]).includes("other")?(A.hother||"").trim():""};
+    const st={...(S.settings||{})};st.profile={...(st.profile||{}),bf:obBF(A)!=null?String(obBF(A)):"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,time:A.time,focus:A.focus||"even",pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,steps:String(obSteps(A)),target:A.target||"",health:(A.health||[]).filter(x=>x!=="none"),healthText:(A.health||[]).includes("other")?(A.hother||"").trim():""};
     if(r)st.foodTarget={kcal:r.kcal,p:r.p,f:r.f,c:r.c};st.consent=st.consent||new Date().toISOString();
-    const pg=applyFocus(presetProgram(P),A);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
+    const pg=obProgram(A);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
     saveSettings().then(()=>{render();window.scrollTo(0,0);toast("Готово! Впиши веса, с которых начинаешь, или оставь пустыми — подберёшь на тренировке")},()=>toast("Не удалось сохранить"));return true}
   return false}
 function vProg(){
