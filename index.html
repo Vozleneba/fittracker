@@ -920,6 +920,13 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pe-pm{color:var(--muted)}.pe-pm[data-on="1"]{color:#ffb03d;border-color:color-mix(in srgb,#ffb03d 50%,var(--line))}
 .pe-rr{display:flex;gap:8px}.pe-rr label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}.pe-rr input{width:46px;padding:6px;text-align:center}
 .pe-glob{display:flex;flex-direction:column;gap:8px}
+.pe-presets{display:flex;flex-direction:column;gap:10px}.pe-ph{display:flex;justify-content:space-between;align-items:center}
+.pr-card{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
+.pr-top{display:flex;flex-direction:column;gap:6px}.pr-top b{font-size:16px}
+.pr-tags{display:flex;gap:6px;flex-wrap:wrap}.pr-tags i{font-style:normal;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pr-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
+.pr-days{display:flex;gap:6px;flex-wrap:wrap}.pr-days span{font-size:11.5px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--leaf) 10%,transparent);color:var(--fg)}
+.pr-card .btn{align-self:flex-start}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -2346,6 +2353,52 @@ function waveW(type,val,inc){const pat=type==="base"?B:I,v=+val>0?+val:null;
   return pat.map((p,i)=>[p[0],p[1],p[2],v==null?null:type==="base"?rnd(v*PCTS[i],inc):rnd(v*[1,1,1.1,1.1,.6][i],inc)])}
 function peVal(e){if(e.type==="base")return e.orm||(e.w[2]&&e.w[2][3]?Math.round(e.w[2][3]/PCTS[2]):"");return e.w[0]&&e.w[0][3]!=null?e.w[0][3]:""}
 function peSummary(e){const w1=e.w[0],w3=e.w[2];if(peMode(e)!=="wave")return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} · ${PROG_NAMES[peMode(e)].toLowerCase()} прогрессия`;return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
+// ===== Готовые программы (пресеты). Упражнения — id каталога; «!» в конце id — своя схема прогрессии
+const PRESETS=[
+ {id:"fb3",name:"Фулбади",days:3,lvl:"Новичок",prog:"linear",d:"Всё тело за тренировку, 3 раза в неделю. Простой рост: получилось — +шаг каждую тренировку.",
+  plan:[["Фулбади A",1,"Всё тело",["c_squat","c_bench","c_bbrow","c_dblat:double","c_crunch:double"]],
+        ["Фулбади B",3,"Всё тело",["c_rdl","c_ohp","c_latpd","c_lp","c_rope:double"]],
+        ["Фулбади C",5,"Всё тело",["c_lp","c_dbinc","c_crow","c_slc:double","c_dbcurl:double"]]]},
+ {id:"ul4",name:"Верх / низ",days:4,lvl:"Средний",prog:"double",d:"Каждая мышца 2 раза в неделю. Работаешь в диапазоне повторов, дошёл до верха — прибавляешь вес.",
+  plan:[["Верх 1",1,"Грудь · спина · плечи · руки",["c_bench","c_bbrow","c_dbsp","c_latpd","c_ezcurl","c_rope"]],
+        ["Низ 1",2,"Квадрицепс · бицепс бедра · икры",["c_squat","c_rdl","c_lp","c_slc","c_stcalf"]],
+        ["Верх 2",4,"Грудь · спина · плечи · руки",["c_dbinc","c_crow","c_cgpd","c_dblat","c_inccurl","c_cohe"]],
+        ["Низ 2",5,"Ягодицы · квадрицепс · бицепс бедра",["c_hack","c_hipthrust","c_bss","c_llc","c_scalf"]]]},
+ {id:"ppl3",name:"Push / Pull / Legs",days:3,lvl:"Средний",prog:"wave",d:"Жимы, тяги и ноги в отдельные дни. База — волна по % от 1ПМ, изоляция — двойная прогрессия.",
+  plan:[["Push",1,"Грудь · плечи · трицепс",["c_bench","c_dbinc","c_dbsp","c_cfly:double","c_dblat:double","c_rope:double"]],
+        ["Pull",3,"Спина · задняя дельта · бицепс",["c_latpd","c_bbrow","c_crow","c_facepull:double","c_ezcurl:double","c_hammer:double"]],
+        ["Legs",5,"Квадрицепс · ягодицы · бицепс бедра",["c_squat","c_rdl","c_lp","c_legext:double","c_slc:double","c_stcalf:double"]]]},
+ {id:"ppl6",name:"Push / Pull / Legs ×2",days:6,lvl:"Продвинутый",prog:"wave",d:"Тот же PPL дважды в неделю — больше объёма. Нужны хорошее восстановление и сон.",
+  plan:[["Push A",1,"Грудь · плечи · трицепс",["c_bench","c_dbsp","c_cfly:double","c_dblat:double","c_rope:double"]],
+        ["Pull A",2,"Спина · бицепс",["c_bbrow","c_latpd","c_facepull:double","c_ezcurl:double"]],
+        ["Legs A",3,"Квадрицепс · бицепс бедра",["c_squat","c_rdl","c_legext:double","c_slc:double"]],
+        ["Push B",4,"Грудь · плечи · трицепс",["c_dbinc","c_mshp","c_pecdeck:double","c_clat:double","c_cohe:double"]],
+        ["Pull B",5,"Спина · бицепс",["c_tbar","c_cgpd","c_rdm:double","c_inccurl:double"]],
+        ["Legs B",6,"Ягодицы · квадрицепс",["c_hack","c_hipthrust","c_bss","c_llc:double","c_stcalf:double"]]]},
+ {id:"split5",name:"Сплит 5 дней",days:5,lvl:"Продвинутый",prog:"wave",d:"Одна-две группы мышц в день, много объёма на каждую. Классический бодибилдинг.",
+  plan:[["Грудь",1,"Грудь",["c_bench","c_dbinc","c_mchest","c_cfly:double","c_dips:double"]],
+        ["Спина",2,"Спина · трапеции",["c_bbrow","c_latpd","c_crow","c_cpullover:double","c_dbshrug:double"]],
+        ["Ноги",3,"Квадрицепс · бицепс бедра · икры",["c_squat","c_rdl","c_lp","c_legext:double","c_slc:double","c_stcalf:double"]],
+        ["Плечи",4,"Плечи · задняя дельта",["c_ohp","c_dbsp","c_dblat:double","c_rdm:double","c_facepull:double"]],
+        ["Руки",5,"Бицепс · трицепс",["c_cgbench","c_ezcurl:double","c_skull:double","c_inccurl:double","c_rope:double","c_hammer:double"]]]},
+ {id:"glute4",name:"Ягодицы и ноги",days:4,lvl:"Любой",prog:"double",d:"Акцент на ягодицы и ноги 2 раза в неделю, верх — 2 раза для баланса.",
+  plan:[["Ягодицы A",1,"Ягодицы · бицепс бедра",["c_hipthrust","c_bss","c_rdl","c_abduct","c_kickback"]],
+        ["Верх",2,"Спина · плечи · руки",["c_latpd","c_dbsp","c_crow","c_dblat","c_rope"]],
+        ["Ягодицы B",4,"Ягодицы · квадрицепс",["c_lp","c_smthrust","c_llc","c_cabduct","c_stcalf"]],
+        ["Верх + пресс",6,"Грудь · спина · пресс",["c_dbbench","c_dbrow","c_facepull","c_dbcurl","c_crunch"]]]},
+ {id:"home3",name:"Дома с гантелями",days:3,lvl:"Новичок",prog:"double",d:"Только гантели и скамья. Подходит для старта или когда нет зала.",
+  plan:[["Дом A",1,"Всё тело",["c_goblet","c_dbbench","c_dbrow","c_dbsp","c_dbcurl"]],
+        ["Дом B",3,"Всё тело",["c_dbrdl","c_pushup","c_sealrow","c_dblat","c_dbohe"]],
+        ["Дом C",5,"Всё тело",["c_bss","c_dbinc","c_dbrear","c_hammer","c_plank"]]]}
+];
+function presetProgram(P){const pg={v:1,kind:"wave",days:[]};if(P.prog!=="wave")pg.prog=P.prog;const old=S.pe;S.pe={pg};
+  P.plan.forEach(([title,dow,sub,ids],i)=>{const D={key:P.id+(i+1),title,sub,dow,ex:[]};
+    for(const raw of ids){const [id,mode]=raw.split(":"),c=CATM[id];if(!c)continue;const e={id,name:c.name,inc:c.inc||2.5,type:c.type};if(c.eq==="bw")e.bw=true;if(mode&&mode!==P.prog)e.prog=mode;rebuildW(e,null);D.ex.push(e)}
+    pg.days.push(D)});S.pe=old;return pg}
+function presetsBlock(){return `<section class="card pe-presets"><div class="pe-ph"><div class="eyebrow">Готовые программы</div><button class="link" data-act="peprx">Закрыть</button></div>
+  ${PRESETS.map(P=>`<div class="pr-card"><div class="pr-top"><b>${esc(P.name)}</b><span class="pr-tags"><i>${P.days} ${plural(P.days,"день","дня","дней")}</i><i>${P.lvl}</i><i>${PROG_NAMES[P.prog]}</i></span></div>
+    <p>${esc(P.d)}</p><div class="pr-days">${P.plan.map(d=>`<span>${DOW[d[1]]} · ${esc(d[0])}</span>`).join("")}</div>
+    <button class="btn small" data-act="pepick" data-id="${P.id}">Выбрать</button></div>`).join("")}</section>`}
 function vProg(){
   if(!S.pe)S.pe={pg:clone(curProgram()),pick:null,q:"",m:""};
   const P=S.pe.pg;
@@ -2365,6 +2418,7 @@ function vProg(){
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
     <div style="flex:1"><h2>Моя программа ${qh("Дни, упражнения и рабочие веса. База идёт волной по процентам от 1ПМ: 63 → 72 → 84 → 89%, потом разгрузка. Для изоляции впиши вес первой недели — дальше он растёт сам. 1ПМ можно оценить: вес × (1 + повторы/30).")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
+  ${S.pe.presets?presetsBlock():`<button class="btn ghost" data-act="pepr" style="margin-top:0">Готовые программы</button>`}
   <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Волна — 4 недели по процентам от 1ПМ, для опытных. Двойная — работаешь в диапазоне повторов; сделал верхнюю границу во всех подходах → +шаг веса. Линейная — фиксированные повторы, получилось → +шаг каждую тренировку; два срыва подряд → −10%. Для отдельного упражнения схему можно поменять кнопкой рядом с ним.")}</div>
     <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
   ${days}
@@ -2403,6 +2457,10 @@ function peHandle(a,b){const P=S.pe&&S.pe.pg;if(!P)return false;const di=+b.data
     let id=c.id;const all=new Set(P.days.flatMap(d=>d.ex.map(x=>x.id)));if(D.ex.some(x=>x.id===id))id=id+"_"+Date.now().toString(36).slice(-3);
     const e={id,name:c.name,inc:c.inc||2.5,type:c.type,w:waveW(c.type,null,c.inc)};if(c.eq==="bw")e.bw=true;rebuildW(e,null);
     D.ex.push(e);S.pe.pick=null;render();toast("Добавлено — впиши "+(e.type==="base"?"1ПМ":"рабочий вес"));return true}
+  if(a==="pepr"){S.pe.presets=true;render();return true}
+  if(a==="peprx"){S.pe.presets=false;render();return true}
+  if(a==="pepick"){const Pr=PRESETS.find(x=>x.id===b.dataset.id);if(!Pr)return true;S.pe.pg=presetProgram(Pr);S.pe.presets=false;render();window.scrollTo(0,0);
+    toast("«"+Pr.name+"» подставлена — впиши стартовые веса и сохрани");return true}
   if(a==="pecancel"){S.pe=null;S.view="home";render();window.scrollTo(0,0);return true}
   if(a==="pereset"){S.pe.pg=clone(DEF_PROGRAM);render();toast("Вернул исходную — нажми «Сохранить»");return true}
   if(a==="pesave"){const bad=P.days.find(d=>!d.ex.length);if(bad){toast(`В дне «${bad.title}» нет упражнений`);return true}
