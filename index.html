@@ -1755,7 +1755,8 @@ function recalcFood(doc){const d=doc.date;S.daily[d]=doc;const auto=!doc.food||!
 function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
   const list=X.map(x=>`<div class="fx-it"><span class="fx-t"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""}</span></span><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
   let panel="";
-  if(F.mode==="busy")panel=`<div class="fx-busy"><i></i>${esc(F.msg||"Считаю…")}</div>`;
+  if(F.mode==="err")panel=`<div class="fx-panel"><div class="rir" style="color:#ff5a4e">Не получилось: ${esc(F.msg||"")}</div><button class="link" data-act="fxcancel" style="align-self:flex-start">Закрыть</button></div>`;
+  else if(F.mode==="busy")panel=`<div class="fx-busy"><i></i>${esc(F.msg||"Считаю…")}</div>`;
   else if(F.mode==="text")panel=`<div class="fx-panel"><textarea id="fx-text" placeholder="Например: шаурма большая в лаваше и латте 400 мл">${esc(F.text||"")}</textarea>
     <div class="me-row"><button class="btn small" data-act="fxsend">Оценить</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`;
   else if(F.mode==="code")panel=`<div class="fx-panel"><div class="rir">Не удалось прочитать штрихкод с фото — впиши цифры под ним.</div><div class="row-in"><input id="fx-code" inputmode="numeric" placeholder="4 006381 333931"><button class="btn small" data-act="fxcode">Найти</button></div><button class="link" data-act="fxcancel" style="align-self:flex-start">Отмена</button></div>`;
@@ -1768,7 +1769,7 @@ function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
       ${D.src==="photo"||D.src==="text"?`<div class="rir">Оценка с запасом: калории, жиры и углеводы +15%, белок −10% — так сложнее случайно переесть.${D.hidden?" Учтено: "+esc(String(D.hidden).replace(/[.\s]+$/,""))+".":""} Поправь граммы, если знаешь точнее.</div>`:""}
       ${D.src==="barcode"?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
       <div class="me-row"><button class="btn small" data-act="fxadd">Добавить в день</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
-  return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Для блюд ИИ даёт оценку с запасом вверх, для упаковок берутся цифры с этикетки из базы Open Food Facts. Всё добавленное входит в итог дня.")}</div>
+  return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Всё добавленное входит в итог дня.")}</div>
     ${list}
     ${F.mode?panel:`<div class="fx-acts"><button data-act="fxphoto">${FXI.cam}Фото</button><button data-act="fxtext">${FXI.txt}Описать</button><button data-act="fxbc">${FXI.bc}Штрихкод</button></div>`}
     <input type="file" id="fx-file" accept="image/*" capture="environment" hidden onchange="fxFile(this,'photo')">
@@ -1790,7 +1791,7 @@ async function fxDecode(file){
   const url=URL.createObjectURL(file);try{const h=new Map();h.set(ZXing.DecodeHintType.TRY_HARDER,true);
     const rd=new ZXing.BrowserMultiFormatReader(h);const r=await rd.decodeFromImageUrl(url);return r&&r.getText()}catch(e){return null}finally{URL.revokeObjectURL(url)}}
 function fxAiDraft(j,src){const a=j.adj||{};S.fx={mode:"review",d:{src,name:j.dish||"Блюдо",g:a.g||null,k:a.k,p:a.p,f:a.f,c:a.c,base:{...a},items:j.items||[],hidden:j.hidden||"",conf:j.confidence}};render()}
-async function fxRun(fn,msg){S.fx={mode:"busy",msg};render();try{await fn()}catch(e){S.fx=null;render();toast("Не получилось: "+(e&&e.message||e))}}
+async function fxRun(fn,msg){S.fx={mode:"busy",msg};render();try{await Promise.race([fn(),new Promise((_,no)=>setTimeout(()=>no(new Error("сервер не ответил за 45 секунд")),45000))])}catch(e){S.fx={mode:"err",msg:String(e&&e.message||e)};render()}}
 window.fxFile=async(inp,kind)=>{const f=inp.files&&inp.files[0];inp.value="";if(!f)return;
   if(kind==="photo"){if(!fxCloud()){toast("Распознавание еды работает в Telegram-версии");return}
     fxRun(async()=>{const img=await fxResize(f);const j=await cloudApi("food",{image:img});fxAiDraft(j,"photo")},"Смотрю на блюдо…")}
