@@ -1700,15 +1700,16 @@ function calcCompute(c){
   pal+=c.job==="stand"?.05:c.job==="phys"?.15:0;pal+=Math.min(6,+c.train||0)*.025;
   const tdee=bmr*pal,bmi=w/((h/100)**2);
   const rate={soft:.5,std:.75,fast:1}[c.pace]||.75;let kcal,note=[];
-  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.25;if(def>cap){def=cap;note.push("Больше урезать нельзя — пострадают мышцы и самочувствие.")}kcal=tdee-def}
+  if(c.goal==="cut"){let def=w*rate/100*7700/7;const cap=tdee*.25;if(def>cap){def=cap;note.push("Сильнее урезать калории небезопасно — поставил максимум, который можно.")}kcal=tdee-def}
   else if(c.goal==="recomp")kcal=tdee*.9;else if(c.goal==="keep")kcal=tdee;else kcal=tdee*1.08;
   const minK=c.sex==="m"?1500:1200;if(kcal<minK){kcal=minK;note.push(`Ниже ${minK} ккал опускаться не стоит — поставил минимум.`)}
   if(kcal<bmr&&c.goal==="cut")note.push("Калорий очень мало. Держи так не дольше 4–6 недель, потом неделю ешь больше.");
   if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("У тебя и так мало веса — худеть не стоит. Лучше держать вес или набирать.");
   if(bf&&bf<(c.sex==="m"?12:20)&&c.goal==="cut"&&c.pace!=="soft")note.push("Жира уже мало — безопаснее худеть медленно.");
   // белок: на дефиците выше; при высоком % жира считаем от сухой массы
-  // Защита у женщин на сушке: не ниже базового обмена
-  if(c.sex==="f"&&c.goal==="cut"&&kcal<bmr){kcal=bmr;note.push("Ниже базового обмена опускаться не стоит — поставил его как минимум.")}
+  // Защита: у женщин на сушке не ниже базового обмена; у всех — не меньше ~30 ккал на кг сухой массы после тренировок (Loucks 2003, RED-S)
+  {let floor=c.sex==="f"?bmr:0;if(bmi<30){const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(c.sex==="f"?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7;floor=Math.max(floor,30*ffm+ex)}
+   if(c.goal==="cut"&&kcal<floor){kcal=floor;note=note.filter(n=>!n.startsWith("Сильнее урезать"));note.push("Поставил чуть больше калорий: меньше есть небезопасно. Худеть будешь чуть медленнее, зато без вреда.")}}
   // Белок: 1,6–2,0 г/кг (Morton 2018; ISSN). При ИМТ > 30 — от желаемого веса (ИМТ 25)
   const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.8:1.6,tw=bmi>30?25*(h/100)**2:w,base=(lbm&&bf>(fem?32:25))?Math.min(lbm*1.25,tw):tw;
   const p=Math.round(base*pK/5)*5;
@@ -1716,9 +1717,6 @@ function calcCompute(c){
   let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
   let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
   kcal=Math.round((p*4+f*9+carb*4)/10)*10;
-  // Доступность энергии: калории минус тренировки на кг сухой массы (порог ~30 — Loucks 2003, RED-S)
-  {const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(fem?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7,ea=(kcal-ex)/ffm; // % жира по Deurenberg 1991, если не указан
-   if(ea<30&&c.goal==="cut"&&bmi<30)note.push(`Энергии маловато: после тренировок остаётся ~${Math.round(ea)} ккал на кг мышц и костей при норме от 30. Так долго нельзя — ${fem?"может сбиться цикл, ":""}падают силы и восстановление. Выбери темп помедленнее или добавь 100–200 ккал.`)}
   return {bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
     perWeek:c.goal==="cut"?Math.round((tdee-kcal)*7/7700*100)/100:c.goal==="gain"?Math.round((kcal-tdee)*7/7700*100)/100:0}}
 function calcResHTML(){const c=S.calc,r=calcCompute(c);
@@ -2422,8 +2420,8 @@ const OB_Q=[
 // ===== Акценты анкеты: меняют подходы, повторы, прогрессию и добавляют упражнения
 const FOCUS={
  even:{n:"Всё тело равномерно"},
- strength:{n:"Сила",d:"меньше повторов, тяжелее веса"},
- hyp:{n:"Гипертрофия (рост мышц)",d:"средние повторы, больше подходов"},
+ strength:{n:"Сила"},
+ hyp:{n:"Гипертрофия"},
  chest:{n:"Грудь",m:["chest"]},back:{n:"Спина",m:["back"]},shoulders:{n:"Плечи",m:["shoulders"]},arms:{n:"Руки",m:["biceps","triceps"]},legs:{n:"Ноги",m:["quads","hams"]},
  glute:{n:"Ягодицы и ноги",m:["glutes","hams"]},upper:{n:"Верх тела и осанка",m:["back","shoulders"]}};
 const FOCUS_ALL=["even","strength","hyp","chest","back","shoulders","arms","legs","glute","upper"],FOCUS_BY_SEX={m:FOCUS_ALL,f:FOCUS_ALL,"":FOCUS_ALL};
@@ -2453,8 +2451,8 @@ function obPreset(A){const d=+A.days;
 function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{sex:S.settings.profile.sex,goal:S.settings.profile.goal,age:S.settings.profile.age,height:S.settings.profile.height,weight:String(S.settings.profile.weight||"").replace(".",",")}:{})},consent:!!(S.settings&&S.settings.consent)}),A=O.a;
   const ready=OB_Q.every(q=>A[q.k])&&+A.age>=16&&+String(A.height).replace(",",".")>=130&&+String(A.weight).replace(",",".")>=35&&O.consent;
   let res="";if(ready){const P=PRESETS.find(x=>x.id===obPreset(A)),r=calcCompute({sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:"soft",job:"sit",train:+A.days,steps:7000});
-    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}${FOCUS[A.focus].m?" — больше подходов и упражнений на эти мышцы":A.focus==="strength"?" — меньше повторов, тяжелее веса":" — больше подходов, 6–15 повторов"}.`:""}</p>
-      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}`:""}
+    res=`<section class="card ob-res"><div class="eyebrow">Тебе подойдёт</div><b class="ob-p">${esc(P.name)} · ${P.days} ${plural(P.days,"день","дня","дней")}</b><p>${esc(P.d)}${A.focus&&A.focus!=="even"?` Акцент: ${FOCUS[A.focus].n.toLowerCase()}.`:""}</p>
+      ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>`:""}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">6 вопросов — и подберу программу и питание</div></div></div>
   ${OB_Q.map(q=>({...q,o:q.k==="focus"?FOCUS_BY_SEX[A.sex||""].map(k=>[k,FOCUS[k].n+(FOCUS[k].d?" · "+FOCUS[k].d:"")]):q.o})).map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${A.sex==="f"?"готова":A.sex==="m"?"готов":"готов(а)"} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
