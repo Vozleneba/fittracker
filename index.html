@@ -894,6 +894,11 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .goal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
 .goal-row>span{display:flex;flex-direction:column;gap:4px}.goal-row b{font-size:14px}
 .me-goal{margin-top:6px;font-size:12.5px;color:var(--muted)}.me-goal b[data-s=ok]{color:var(--leaf)}.me-goal b[data-s=up]{color:#ff8a3d}.me-goal b[data-s=down]{color:#5c9dff}
+.pin-t{display:inline-flex;align-items:center;gap:5px;margin-left:auto;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--muted);font:600 11.5px var(--sans,system-ui);cursor:pointer}
+.pin-t[aria-pressed=true]{color:var(--leaf);border-color:color-mix(in srgb,var(--leaf) 55%,var(--line));background:color-mix(in srgb,var(--leaf) 12%,transparent)}
+.me-mh{display:flex;align-items:center;gap:10px}
+.pin-ic{display:inline-flex;vertical-align:-2px;color:var(--leaf);font-style:normal}
+.me-fwd{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}.me-fwd input{width:18px;height:18px;accent-color:var(--leaf)}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1708,7 +1713,8 @@ const DEF_PLAN=[
  {id:"m4",name:"Макароны + курица",items:[{p:"pasta",q:80},{p:"chick",q:150},{p:"oil",q:10},{p:"veg",q:0}]},
  {id:"m5",name:"Арахис",extra:true,items:[{p:"pean",q:30}]}];
 const allFoods=()=>({...FOODS,...((S.settings&&S.settings.foods)||{})});
-const getPlan=d=>(d&&S.daily[d]&&S.daily[d].dayPlan)||(S.settings&&S.settings.mealPlan)||DEF_PLAN;
+const getPlan=d=>(d&&S.daily[d]&&S.daily[d].dayPlan)||(S.settings&&S.settings.mealPlan)||[];
+const pinnedIds=()=>new Set(getPlan().map(m=>m.id));
 const clone=o=>JSON.parse(JSON.stringify(o));
 const qn=v=>{const x=parseFloat(String(v??"").replace(",","."));return x>0?x:0};
 function itemVal(it,dl){const F=allFoods()[it.p];if(!F)return {k:0,p:0,f:0,c:0};const q=qn(it.q)+(dl&&it.dl?it.dl:0),g=F.u?q*F.g:q;
@@ -1733,9 +1739,9 @@ function meRefresh(){const E=S.mEdit;if(!E)return;
 function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(E.orig);
   const opts=sel=>Object.entries(FD).map(([k,F])=>`<option value="${k}" ${k===sel?"selected":""}>${esc(F.s||F.n)}</option>`).join("")+`<option value="__new">+ Свой продукт…</option>`;
   return `<div class="me">
-    <div class="me-tot"><div class="eyebrow">${E.scope==="day"?`Только на ${E.date===today()?"сегодня":dm(E.date)}`:"Обычный план · на все дни"} ${qh("Крупы и макароны — сухой вес, курица и картошка — сырой. Овощи без граммовки не считаются — впиши граммы, если хочешь учитывать. При замене продукта количество подбирается под те же калории. На разгрузке к рису и кускусу автоматически добавляется +60 / +50 г.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div>${goalLine(T)}</div>
+    <div class="me-tot"><div class="eyebrow">Приёмы на ${E.date===today()?"сегодня":dm(E.date)} ${qh("Крупы и макароны — сухой вес, курица и картошка — сырой. Овощи без граммовки не считаются — впиши граммы, если хочешь учитывать. При замене продукта количество подбирается под те же калории. На разгрузке к рису и кускусу автоматически добавляется +60 / +50 г.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div>${goalLine(T)}</div>
     ${E.plan.map((m,mi)=>{const v=mealVal(m),o=E.orig.find(x=>x.id===m.id);return `<div class="me-meal">
-      <div class="me-mh"><span class="ml-l">${mealLbl(E.plan,mi)}</span><button class="link" data-act="medelm" data-m="${mi}">Удалить приём</button></div>
+      <div class="me-mh"><span class="ml-l">${mealLbl(E.plan,mi)}</span><button class="pin-t" data-act="mepin" data-m="${mi}" aria-pressed="${!!m.pin}">${PINI}${m.pin?"Каждый день":"Только сегодня"}</button><button class="link" data-act="medelm" data-m="${mi}">Удалить</button></div>
       <input class="me-name" id="me-n-${mi}" value="${esc(m.name)}" data-in="me" data-f="name" data-m="${mi}" aria-label="Название приёма" placeholder="Название">
       ${m.items.map((it,ii)=>{const F=FD[it.p]||{};return `<div class="me-it">
         <select id="me-p-${mi}-${ii}" data-in="me" data-f="p" data-m="${mi}" data-i="${ii}" aria-label="Продукт">${opts(it.p)}</select>
@@ -1748,8 +1754,9 @@ function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(
           <div class="me-row"><button class="btn small" data-act="mecfsave" data-m="${mi}" data-i="${ii}">Добавить продукт</button><button class="link" data-act="mecfx">Отмена</button></div></div>`:""}`}).join("")}
       <button class="link" data-act="meaddi" data-m="${mi}" style="align-self:flex-start">+ продукт</button>
       <div class="me-mt" id="me-m-${mi}">${mLine(v)}<div>${o?dLine(v,mealVal(o)):`<span class="me-d" data-s="up">новый приём</span>`}</div></div>
+      ${m.pin&&E.base.has(m.id)?`<label class="me-fwd"><input type="checkbox" data-in="mefwd" data-m="${mi}" ${m.fwd?"checked":""}> Изменения — и на следующие дни</label>`:""}
     </div>`}).join("")}
-    <div class="me-row"><button class="link" data-act="meaddm">+ приём</button><button class="link" data-act="mereset" style="margin-left:auto">${E.scope==="day"?"Как в обычном плане":"Вернуть исходный план"}</button></div>
+    <div class="me-row"><button class="link" data-act="meaddm">+ приём</button></div>
     <div class="me-row"><button class="btn ghost" data-act="mecancel" style="margin:0;flex:1">Отмена</button><button class="btn" data-act="mesave" style="margin:0;flex:1">Сохранить</button></div>
   </div>`}
 // ===== Еда вне плана: фото / описание / штрихкод
@@ -1827,25 +1834,25 @@ function goalBlock(sel){const ct=S.settings&&S.settings.foodTarget,G=goalNums(se
     <div class="fx-g" style="grid-template-columns:repeat(4,1fr)">${[["k","ккал",ct&&ct.kcal],["p","Б, г",ct&&ct.p],["f","Ж, г",ct&&ct.f],["c","У, г",ct&&ct.c]].map(([k,l,v])=>`<label>${l}<input id="tg-${k}" inputmode="numeric" value="${v||""}"></label>`).join("")}</div>
     <div class="me-row"><button class="btn small" data-act="tgsave">Сохранить цель</button><button class="link" data-act="tgcancel">Отмена</button></div></div>`;
   return `<div class="goal-row"><span><span class="eyebrow">Цель на день</span><b class="num">${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c}</b></span><button class="link" data-act="tgedit">Изменить</button></div>`}
+const PINI='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 16v5"/></svg>';
 async function saveSettings(){return S.store==="db"?S.db.doc("meta/settings").set(S.settings):ls.set("meso-settings",S.settings)}
 function mealsCard(sel){
-  const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(sel),G=goalNums(sel),dp=!!dayDoc(sel).dayPlan;
+  const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(sel),G=goalNums(sel),PIN=pinnedIds();
   const ck='<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   return `<section class="card ml-card dt" data-open="${S.dt.meals?1:0}">
     <div class="dt-sum ml-head" role="button" tabindex="0" data-act="dt" data-k="meals" aria-label="План питания: показать или скрыть">
-      <div class="w-top"><div><div class="eyebrow">План питания${dl?" · разгрузка":""} ${qh("Нажми на приём, когда съел; повторное нажатие снимает отметку. Отмеченное само записывается в итог дня. Крупы — сухой вес, курица и картошка — сырой. Замены: кускус 80 г = рис 65 г = макароны 70 г = картошка 300 г; тунец 1 банка = курица 180 г.")}</div><div class="w-big num">${s.n}<small> из ${P.length} ${plural(P.length,"приёма","приёмов","приёмов")}</small></div></div>
+      <div class="w-top"><div><div class="eyebrow">Питание${dl?" · разгрузка":""} ${qh("Нажми на приём, когда съел; повторное нажатие снимает отметку. Отмеченное само записывается в итог дня. Приёмы с 📌 повторяются каждый день, остальные — только в этот день. Крупы — сухой вес, курица и картошка — сырой. Замены: кускус 80 г = рис 65 г = макароны 70 г = картошка 300 г; тунец 1 банка = курица 180 г.")}</div><div class="w-big num">${s.n}<small> из ${P.length} ${plural(P.length,"приёма","приёмов","приёмов")}</small></div></div>
       <div class="ml-sum"><b>${s.k.toLocaleString("ru-RU")}</b><span>из ${G.k.toLocaleString("ru-RU")} ккал</span></div></div>
       <div class="ml-mac">${(()=>{const T=G;return [["Белки","p"],["Жиры","f"],["Углеводы","c"]].map(([l,x])=>`<div class="ml-m"><span>${l}</span><b class="num">${s[x]}<small> / ${T[x]} г</small></b><i><em style="width:${T[x]?Math.min(100,s[x]/T[x]*100):0}%"></em></i></div>`).join("")})()}</div>
       <div class="ml-dots"><span class="ml-chev nx-hint">${S.dt.meals?"Скрыть":"Показать"}</span></div>
     </div>
-    <div class="dt-body ml-body">${S.mEdit?mealEditor():`<div class="ml-list">${P.map((m,mi)=>{const d=dn[m.id],v=mealVal(m,dl);
+    <div class="dt-body ml-body">${S.mEdit?mealEditor():`${P.length?"":`<div class="rir">Добавь свои приёмы пищи. Закреплённые 📌 будут появляться каждый день.</div>`}<div class="ml-list">${P.map((m,mi)=>{const d=dn[m.id],v=mealVal(m,dl);
       const it=m.items.map(x=>itemText(x,dl)).filter(Boolean).join(" · ");
       return `<button class="ml" data-act="meal" data-id="${m.id}" aria-pressed="${!!d}"><span class="ml-ck">${ck}</span>
-        <span class="ml-t"><span class="ml-l">${mealLbl(P,mi)}${d?` · съел в ${d}`:""}</span><b>${esc(m.name)}</b><span class="ml-i">${it}</span></span>
+        <span class="ml-t"><span class="ml-l">${mealLbl(P,mi)}${PIN.has(m.id)?` <i class="pin-ic" title="Каждый день">${PINI}</i>`:""}${d?` · съел в ${d}`:""}</span><b>${esc(m.name)}</b><span class="ml-i">${it}</span></span>
         <span class="ml-k num">${v.k}<small>Б${v.p} Ж${v.f} У${v.c}</small></span></button>`}).join("")}</div>
     ${extrasBlock(sel)}
-    ${dp?`<div class="dp-note"><span>План на ${sel===today()?"сегодня":dm(sel)} изменён — на другие дни это не влияет</span><button class="link" data-act="medayreset">Вернуть обычный</button></div>`:""}
-    <div class="me-btns"><button class="btn ghost" data-act="meedit" data-s="day" style="margin:0">${sel===today()?"Изменить сегодня":"Изменить на "+dm(sel)}</button><button class="btn ghost" data-act="meedit" data-s="base" style="margin:0">Обычный план</button></div>
+    <div class="me-btns"><button class="btn ghost" data-act="meedit" style="margin:0">${P.length?"Изменить":"+ Приём"}</button><button class="btn ghost" data-act="meyest" style="margin:0">Как вчера</button></div>
     ${goalBlock(sel)}
     ${(()=>{const f=dayDoc(sel).food;return f&&f.kcal&&f.src!=="plan"?`<div class="w-verdict" data-t="up">За день записано ${f.src==="health"?"из FatSecret":"вручную"}: <b>${Math.round(f.kcal).toLocaleString("ru-RU")} ккал</b> · Б ${Math.round(f.p||0)} Ж ${Math.round(f.f||0)} У ${Math.round(f.c||0)}</div>`:""})()}
     ${(()=>{const mt=maintenance();return mt?`<div class="w-verdict" data-t="up"><b>Расчётная поддержка ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал</b> — по ${mt.days} дням питания и тренду веса (±150 ккал).</div>`:""})()}
@@ -2513,18 +2520,20 @@ document.addEventListener("click",ev=>{
   else if(a==="wsave"){const d=S.actDate||today(),v=parseFloat(String($("#w-in").value).replace(",","."));
     if(!(v>=30&&v<=250)){toast("Впиши вес в кг, например 82,4");return}
     saveDay({...dayDoc(d),weight:Math.round(v*10)/10}).then(()=>{S.wSel=d;render();toast(`Вес ${kgF(v)} кг записан`)})}
-  else if(a==="meedit"){const d=S.actDate||today(),sc=b.dataset.s==="day"?"day":"base",P0=sc==="day"?getPlan(d):getPlan();S.mEdit={plan:clone(P0),orig:clone(P0),cf:null,foods:{},scope:sc,date:d};S.dt.meals=true;render()}
-  else if(a==="medayreset"){const d=S.actDate||today(),doc={...dayDoc(d)};delete doc.dayPlan;recalcFood(doc);saveDay(doc).then(()=>{render();toast("Вернул обычный план")})}
+  else if(a==="meedit"){const d=S.actDate||today(),B=pinnedIds(),P0=clone(getPlan(d)).map(m=>({...m,pin:B.has(m.id)}));S.mEdit={plan:P0,orig:clone(getPlan(d)),cf:null,foods:{},date:d,base:B};S.dt.meals=true;
+    if(!P0.length)S.mEdit.plan.push({id:"m"+Date.now().toString(36),name:"Приём 1",items:[{p:"chick",q:150}],pin:true});render()}
+  else if(a==="mepin"){const m=S.mEdit.plan[+b.dataset.m];m.pin=!m.pin;if(!m.pin)m.fwd=false;render()}
+  else if(a==="meyest"){const d=S.actDate||today(),y=addDays(d,-1),Y=getPlan(y);if(!Y.length){toast("Вчера приёмов не было");return}
+    const doc={...dayDoc(d),dayPlan:clone(Y)};if(JSON.stringify(doc.dayPlan)===JSON.stringify(getPlan()))delete doc.dayPlan;doc.meals={};recalcFood(doc);saveDay(doc).then(()=>{render();toast("Приёмы как вчера — отметь, что съел")})}
   else if(a==="tgedit"){S.tgEdit=true;render()}
   else if(a==="tgcancel"){S.tgEdit=false;render()}
   else if(a==="tgsave"){const g=k=>parseFloat(String(($("#tg-"+k)||{}).value||"").replace(",","."))||0;let k=g("k");const p=g("p"),f=g("f"),c=g("c");
     if(!(p>0&&f>0&&c>0)){toast("Впиши белки, жиры и углеводы");return}if(!k)k=Math.round(p*4+f*9+c*4);
     S.settings={...(S.settings||{}),foodTarget:{kcal:Math.round(k),p:Math.round(p),f:Math.round(f),c:Math.round(c)}};S.tgEdit=false;saveSettings().then(()=>{render();toast("Цель сохранена")},()=>toast("Не удалось сохранить"))}
   else if(a==="mecancel"){S.mEdit=null;render()}
-  else if(a==="mereset"){S.mEdit.plan=clone(S.mEdit.scope==="day"?getPlan():DEF_PLAN);render()}
   else if(a==="meaddi"){const m=S.mEdit.plan[+b.dataset.m];m.items.push({p:"veg",q:""});render();const l=m.items.length-1,el=document.getElementById(`me-p-${b.dataset.m}-${l}`);if(el)el.focus()}
   else if(a==="medeli"){S.mEdit.plan[+b.dataset.m].items.splice(+b.dataset.i,1);S.mEdit.cf=null;render()}
-  else if(a==="meaddm"){S.mEdit.plan.push({id:"m"+Date.now().toString(36),name:"Новый приём",items:[{p:"chick",q:150}]});render()}
+  else if(a==="meaddm"){S.mEdit.plan.push({id:"m"+Date.now().toString(36),name:"Новый приём",items:[{p:"chick",q:150}],pin:false});render()}
   else if(a==="medelm"){S.mEdit.plan.splice(+b.dataset.m,1);S.mEdit.cf=null;render()}
   else if(a==="mecfx"){S.mEdit.cf=null;render()}
   else if(a==="mecfsave"){const g=k=>($("#cf-"+k)||{}).value||"",n=g("n").trim(),v=k=>parseFloat(g(k).replace(",","."))||0;
@@ -2532,12 +2541,14 @@ document.addEventListener("click",ev=>{
     const id="u"+Date.now().toString(36);S.settings={...(S.settings||{}),foods:{...((S.settings&&S.settings.foods)||{}),[id]:{n,s:n,k:v("k"),p:v("p"),f:v("f"),c:v("c")}}};
     saveSettings().catch(()=>toast("Не удалось сохранить продукт"));
     const it=S.mEdit.plan[+b.dataset.m].items[+b.dataset.i];it.p=id;it.q=it.q||100;delete it.dl;S.mEdit.cf=null;render();toast(`Продукт «${n}» добавлен`)}
-  else if(a==="mesave"){const P=S.mEdit.plan.map(m=>({...m,name:(m.name||"").trim()||"Приём",items:m.items.filter(it=>allFoods()[it.p]).map(it=>({...it,q:qn(it.q)}))}));
-    if(S.mEdit.scope==="day"){const d=S.mEdit.date,doc={...dayDoc(d),dayPlan:P};S.mEdit=null;recalcFood(doc);
-      saveDay(doc).then(()=>{render();toast("План изменён только на "+(d===today()?"сегодня":dm(d)))},()=>toast("Не удалось сохранить"));return}
-    S.settings={...(S.settings||{}),mealPlan:P};S.mEdit=null;
-    saveSettings().then(()=>{const d=S.actDate||today(),doc=dayDoc(d);
-      if(doc.food&&doc.food.src==="plan"){const s2=mealSum(d);const nd={...doc};if(s2.n||s2.x)nd.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete nd.food;return saveDay(nd)}}).then(()=>{render();toast("Обычный план сохранён — действует на все дни")},()=>toast("Не удалось сохранить"))}
+  else if(a==="mesave"){const E=S.mEdit,strip=m=>{const {pin,fwd,...r}=m;return r};
+    const P=E.plan.map(m=>({...m,name:(m.name||"").trim()||"Приём",items:m.items.filter(it=>allFoods()[it.p]).map(it=>({...it,q:qn(it.q)}))}));
+    const old=getPlan(),ed=new Map(P.map(m=>[m.id,m]));
+    const base=[];for(const bm of old){const m=ed.get(bm.id);if(!m)base.push(bm);else if(m.pin)base.push(m.fwd?strip(m):bm)}
+    for(const m of P)if(m.pin&&!E.base.has(m.id))base.push(strip(m));
+    const day=P.map(strip),d=E.date,doc={...dayDoc(d),dayPlan:day};if(JSON.stringify(day)===JSON.stringify(base))delete doc.dayPlan;
+    const baseChanged=JSON.stringify(base)!==JSON.stringify(old);S.mEdit=null;recalcFood(doc);
+    (baseChanged?(S.settings={...(S.settings||{}),mealPlan:base},saveSettings()):Promise.resolve()).then(()=>saveDay(doc)).then(()=>{render();toast(baseChanged?"Сохранено, закреплённые приёмы обновлены":"Сохранено на "+(d===today()?"сегодня":dm(d)))},()=>toast("Не удалось сохранить"))}
   else if(a.startsWith("fx")&&fxHandle(a,b)){}
   else if(a==="meal"){const d=S.actDate||today(),doc={...dayDoc(d)},mm={...(doc.meals||{})},id=b.dataset.id;
     if(mm[id])delete mm[id];else mm[id]=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
@@ -2620,6 +2631,7 @@ document.addEventListener("keydown",ev=>{if((ev.key==="Enter"||ev.key===" ")&&ev
 function onIn(ev){
   const t=ev.target,k=t.dataset.in;if(!k)return;
   if(k==="rqtext"){if(S.ready)S.ready.text=t.value;return}
+  if(k==="mefwd"&&S.mEdit){S.mEdit.plan[+t.dataset.m].fwd=t.checked;return}
   if(k==="me"&&S.mEdit){const m=S.mEdit.plan[+t.dataset.m],f=t.dataset.f;
     if(f==="name"){m.name=t.value;return}
     const it=m.items[+t.dataset.i];
