@@ -1690,6 +1690,18 @@ const GOALS={cut:"Сбросить жир",recomp:"Рекомпозиция",kee
 function calcDefaults(){const p=(S.settings&&S.settings.profile)||{},w=wStats(),t=today();
   const st=[...Array(7)].map((_,i)=>dayDoc(addDays(t,-i-1)).steps||0).filter(Boolean);
   return {sex:"m",age:"",height:"",weight:w.cur?kgF(w.cur.avg):w.last?kgF(w.last.w):"",bf:"",steps:st.length?String(Math.round(st.reduce((a,b)=>a+b,0)/st.length/500)*500):"",train:4,job:"sit",goal:"cut",pace:"std",...p}}
+// Подсказки по свободному тексту «Другое хроническое» — без диагнозов, только что учесть и с кем обсудить
+const HEALTH_KW=[
+ [/подагр|мочев.{0,3}кислот/,"При подагре поставил белок умереннее — 1,4 г на кг. Сколько можно мяса и рыбы, уточни у врача. Пей больше воды."],
+ [/печен|гепат|цирроз|жиров.{0,3}гепатоз/,"При болезнях печени норму белка и жиров согласуй с врачом. Алкоголь — нет."],
+ [/спкя|пкос|поликистоз|инсулинорез/,"При СПКЯ и инсулинорезистентности обычно помогают регулярные силовые и меньше сладкого и мучного. Обсуди с врачом."],
+ [/гастрит|язв|жкт|кишеч|срк|рефлюкс|панкреат|желч/,"При проблемах с ЖКТ ешь чаще и меньшими порциями, а список продуктов согласуй с гастроэнтерологом."],
+ [/анеми|железодефиц|низк.{0,4}гемоглоб/,"При анемии в рационе нужны мясо, печень, бобовые с овощами и фруктами (витамин C). Анализы — у врача."],
+ [/целиак|глютен|лактоз/,"Непереносимость учитывай в плане еды: замени продукты, а цифры КБЖУ оставь те же."],
+ [/астм/,"При астме держи ингалятор под рукой на тренировке и не начинай резко — хорошо разминайся."],
+ [/спин|грыж|протруз|сколиоз|сустав|колен|артроз|артрит|плеч/,"Нагрузку на спину и суставы согласуй с врачом. Если упражнение даёт боль — замени его в «Моей программе»."],
+ [/эпилеп|судорог/,"Тренируйся не один, без тяжёлых весов над головой и лицом, пока не обсудишь с врачом."],
+ [/депресс|тревож|антидепресс/,"Если принимаешь препараты, расход и аппетит могут отличаться от расчёта — ориентируйся на вес через 2 недели."]];
 function calcCompute(c){
   const num=v=>parseFloat(String(v??"").replace(",","."));const a=num(c.age),h=num(c.height),w=num(c.weight),bf=num(c.bf),steps=num(c.steps)||7000;
   if(!(a>=14&&a<=90&&h>=130&&h<=230&&w>=35&&w<=250))return null;
@@ -1714,7 +1726,9 @@ function calcCompute(c){
   if(H.has("diab"))hnote.push("При диабете углеводы и сроки еды обсуди с врачом — особенно если принимаешь таблетки или инсулин.");
   if(H.has("thyr"))hnote.push("Если щитовидка не компенсирована, расход может отличаться от расчёта. Ориентируйся на вес через 2 недели.");
   if(H.has("heart"))hnote.push("С сердцем или давлением нагрузки сначала согласуй с врачом.");
-  if(H.has("other"))hnote.push("Покажи эти цифры своему врачу — он знает твой случай лучше.");
+  if(H.has("other")){const t=String(c.healthText||"").trim(),lt=t.toLowerCase();
+    for(const [re,n] of HEALTH_KW)if(re.test(lt))hnote.push(n);
+    hnote.push(t?`«${t.slice(0,80)}» — покажи эти цифры своему врачу: он знает твой случай лучше.`:"Покажи эти цифры своему врачу — он знает твой случай лучше.")}
   const noDef=H.has("preg")||H.has("bfeed")||H.has("cycle");
   const minK=c.sex==="m"?1500:1200;if(kcal<minK){kcal=minK;note.push(`Ниже ${minK} ккал опускаться не стоит — поставил минимум.`)}
   if(kcal<bmr&&c.goal==="cut"&&!noDef)note.push("Калорий очень мало. Держи так не дольше 4–6 недель, потом неделю ешь больше.");
@@ -1726,7 +1740,7 @@ function calcCompute(c){
    if(c.goal==="cut"&&!noDef&&kcal<floor){kcal=floor;note=note.filter(n=>!n.startsWith("Сильнее урезать"));note.push("Поставил чуть больше калорий: меньше есть небезопасно. Худеть будешь чуть медленнее, зато без вреда.")}}
   // Белок: 1,8–2,0 г/кг — верх диапазона Morton 2018/ISSN, с запасом на то, что часть белка из круп (хуже аминокислотный состав). При ИМТ > 30 — от желаемого веса (ИМТ 25)
   const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.9:1.8,tg=num(c.target),tw=bmi>30?Math.max(25*(h/100)**2,tg>0&&tg<w?tg:0):w,base=lbm?Math.min(lbm*1.25,tw):tw;
-  const p=Math.round(base*(H.has("kidney")?1:pK)/5)*5;
+  const gout=H.has("other")&&/подагр|мочев.{0,3}кислот/.test(String(c.healthText||"").toLowerCase()),p=Math.round(base*(H.has("kidney")?1:gout?Math.min(pK,1.4):pK)/5)*5;
   // Жиры: женщины ≥1 г/кг и ≥30% калорий, мужчины ≥0,8 г/кг и ≥25%
   let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
   let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
@@ -2476,11 +2490,11 @@ function navyBF(sex,h,waist,neck,hip){const L=Math.log10,n=x=>parseFloat(String(
   return v>=3&&v<=60?Math.round(v*10)/10:null}
 function obBF(A){if(A.bfm==="know"){const v=parseFloat(String(A.bf||"").replace(",","."));return v>=3&&v<=60?v:null}if(A.bfm==="tape")return navyBF(A.sex,A.height,A.waist,A.neck,A.hip);return null}
 const OB_ACT={low:{steps:4000,job:"sit"},walk:{steps:10000,job:"sit"},stand:{steps:9000,job:"stand"},phys:{steps:9000,job:"phys"}};
-const OB_PACE={cut:[["soft","Спокойно"],["std","Оптимально · советую"],["fast","Быстро"]],gain:[["lean","Без лишнего жира · советую"],["fast","Быстрее, но с жиром"]]};
+const OB_PACE={cut:[["soft","Спокойно"],["std","Оптимально"],["fast","Быстро"]],gain:[["lean","Без лишнего жира · советую"],["fast","Быстрее, но с жиром"]]};
 const OB_HEALTH_F=[["preg","Беременность"],["bfeed","Кормлю грудью"],["cycle","Цикл сбился или пропал"]],OB_HEALTH=[["diab","Диабет"],["thyr","Щитовидка"],["kidney","Почки"],["heart","Сердце или давление"],["other","Другое хроническое"]];
 const obNum=v=>parseFloat(String(v??"").replace(",","."));
 function obSteps(A){return A.steps==="?"?5000:obNum(A.steps)}
-function obCalc(A){return calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,train:+A.days,steps:obSteps(A),health:(A.health||[]).filter(x=>x!=="none"),target:A.target||""})}
+function obCalc(A){return calcCompute({bf:obBF(A)||"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,train:+A.days,steps:obSteps(A),health:(A.health||[]).filter(x=>x!=="none"),healthText:A.hother||"",target:A.target||""})}
 function obReady(A,O){return OB_Q.every(q=>A[q.k])&&(!OB_PACE[A.goal]||A.pace)&&(A.health||[]).length&&obSteps(A)>=300&&obSteps(A)<=50000&&+A.age>=16&&obNum(A.height)>=130&&obNum(A.weight)>=35&&O.consent}
 function obPreset(A){const d=+A.days;
   if(A.place==="home")return "home3";
@@ -2494,7 +2508,7 @@ function obPaceHtml(A){const o=OB_PACE[A.goal];if(!o)return "";const cut=A.goal=
     ${A.pace==="fast"?`<div class="rir">${cut?"Быстрее — не значит лучше: при большом дефиците уходят мышцы, а жира сгорает не больше.":"Мышцы быстрее расти не будут — лишнее пойдёт в жир."}</div>`:""}</section>`}
 function obHealthHtml(A){const h=A.health||[],opts=[...(A.sex==="f"?OB_HEALTH_F:[]),...OB_HEALTH,["none","Ничего из этого"]];
   return `<section class="card ob-q"><div class="eyebrow">Есть что-то из этого? ${qh("Спрашиваю не для галочки — это меняет расчёт.\nБеременность, кормление грудью: худеть нельзя, ставлю поддержание.\nСбитый цикл часто значит, что еды не хватает — тогда калории не урезаю.\nБолезни почек: много белка может навредить — снижаю белок.\nОстальное: считаю как обычно и подскажу, что обсудить с врачом.")}</div>
-    <div class="pe-chips ob-ch">${opts.map(([v,l])=>`<button data-act="obh" data-v="${v}" aria-pressed="${h.includes(v)}">${l}</button>`).join("")}</div>${!A.sex?`<div class="rir">Сначала выбери пол.</div>`:""}</section>`}
+    <div class="pe-chips ob-ch">${opts.map(([v,l])=>`<button data-act="obh" data-v="${v}" aria-pressed="${h.includes(v)}">${l}</button>`).join("")}</div>${h.includes("other")?`<div class="fx-g" style="grid-template-columns:1fr"><label>Что именно?<input id="ob-hother" placeholder="например, гастрит" value="${esc(A.hother||"")}" data-in="ob" data-k="hother" maxlength="80"></label></div>`:""}${!A.sex?`<div class="rir">Сначала выбери пол.</div>`:""}</section>`}
 function obStepsHtml(A){const unk=A.steps==="?";
   return `<div class="cq-l">Шагов в день ${qh("Открой «Здоровье» на iPhone, Google Fit или приложение часов и посмотри среднее за неделю. Можно примерно.")}</div><div class="fx-g" style="grid-template-columns:1fr 1fr"><label><input aria-label="Шагов в день" id="ob-steps" inputmode="numeric" placeholder="например, 7000" value="${unk?"":esc(A.steps||"")}" data-in="ob" data-k="steps" ${unk?"disabled":""}></label>
     <button class="link" data-act="obst" style="align-self:end;justify-self:start">${unk?"Впишу число":"Не знаю"}</button></div>${unk?`<div class="rir">Посчитаю как для ~5 000 шагов. Потом уточню по весу.</div>`:""}`}
@@ -2533,7 +2547,7 @@ function obHandle(a,b){const O=S.ob;if(!O)return false;
   if(a==="obst"){O.a.steps=O.a.steps==="?"?"":"?";render();return true}
   if(a==="obx"){S.ob=null;S.view="home";render();return true}
   if(a==="obgo"){const A=O.a;if(!obReady(A,O))return true;const P=PRESETS.find(x=>x.id===obPreset(A)),r=obCalc(A);
-    const st={...(S.settings||{})};st.profile={...(st.profile||{}),bf:obBF(A)!=null?String(obBF(A)):"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,steps:String(obSteps(A)),target:A.target||"",health:(A.health||[]).filter(x=>x!=="none")};
+    const st={...(S.settings||{})};st.profile={...(st.profile||{}),bf:obBF(A)!=null?String(obBF(A)):"",sex:A.sex,age:A.age,height:A.height,weight:A.weight,goal:A.goal,train:+A.days,exp:A.exp,place:A.place,focus:A.focus||"even",pace:OB_PACE[A.goal]?A.pace:"std",job:A.job,steps:String(obSteps(A)),target:A.target||"",health:(A.health||[]).filter(x=>x!=="none"),healthText:(A.health||[]).includes("other")?(A.hother||"").trim():""};
     if(r)st.foodTarget={kcal:r.kcal,p:r.p,f:r.f,c:r.c};st.consent=st.consent||new Date().toISOString();
     const pg=applyFocus(presetProgram(P),A);st.program=pg;S.settings=st;loadProgram(pg);S.ob=null;S.view="prog";S.pe={pg:clone(pg),pick:null,q:"",m:""};
     saveSettings().then(()=>{render();window.scrollTo(0,0);toast("Готово! Впиши веса, с которых начинаешь, или оставь пустыми — подберёшь на тренировке")},()=>toast("Не удалось сохранить"));return true}
