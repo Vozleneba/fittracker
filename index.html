@@ -978,7 +978,22 @@ const WEEKS=[null,
 const DOW=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
 // Снимок весов цикла 2 из PDF — от него считается и к нему откатывается
 const BASE_KG={},BASE_ORM={};
-for(const d of SEQ)for(const ex of PLAN[d].ex){(BASE_KG[d]=BASE_KG[d]||{})[ex.id]=ex.w.map(w=>w[3]);if(ex.orm)BASE_ORM[ex.id]=ex.orm}
+function snapBase(){for(const k in BASE_KG)delete BASE_KG[k];for(const k in BASE_ORM)delete BASE_ORM[k];
+  for(const d of SEQ)for(const ex of PLAN[d].ex){(BASE_KG[d]=BASE_KG[d]||{})[ex.id]=ex.w.map(w=>w[3]);if(ex.orm)BASE_ORM[ex.id]=ex.orm}}
+snapBase();
+// ===== Программа как данные: сериализация PLAN ⇄ settings.program
+const DEF_SUB={push:PLAN.push.sub,pull:PLAN.pull.sub,legs:PLAN.legs.sub,arms:PLAN.arms.sub};
+function progFromPlan(){return {v:1,kind:"wave",days:SEQ.map(k=>{const D=PLAN[k];return {key:k,title:D.title,sub:D.sub||"",dow:D.dow,
+  ex:D.ex.map(e=>{const o={id:e.id,name:e.name,inc:e.inc,type:e.type,w:e.w.map((w,i)=>[w[0],w[1],w[2],BASE_KG[k]&&BASE_KG[k][e.id]?BASE_KG[k][e.id][i]:w[3]])};
+    for(const f of ["bw","stack","max","note","rest"])if(e[f]!=null)o[f]=e[f];if(BASE_ORM[e.id])o.orm=BASE_ORM[e.id];
+    if(typeof e.warm==="function")o.warm={h:e.warm(3),l:e.warm(1)};return o})}})}}
+const DEF_PROGRAM=JSON.parse(JSON.stringify(progFromPlan()));
+function exFromData(o){const e={...o,w:o.w.map(w=>[...w])};if(o.warm&&typeof o.warm==="object"){const W=o.warm;e.warm=wk=>wk>=3&&wk<=4?W.h:W.l}return e}
+let PROG_SIG="";
+function loadProgram(pg){pg=pg&&pg.days&&pg.days.length?pg:DEF_PROGRAM;const sig=JSON.stringify(pg);if(sig===PROG_SIG)return false;PROG_SIG=sig;
+  for(const k of Object.keys(PLAN))delete PLAN[k];SEQ.length=0;
+  for(const D of pg.days){PLAN[D.key]={title:D.title,sub:D.sub||"",dow:D.dow,ex:D.ex.map(exFromData)};SEQ.push(D.key);TITLES[D.key]=D.title;if(typeof SHORT!=="undefined")SHORT[D.key]=D.title}
+  snapBase();applyCycle(CYCLE_DOC);return true}
 let CYCLE_DOC=null;
 function applyCycle(doc){
   CYCLE_DOC=doc&&doc.n?doc:null;
@@ -2695,7 +2710,7 @@ async function init(){
   S.draft=ls.get("meso-wave-draft",null);try{S.hashSeen=location.hash||""}catch(e){S.hashSeen=""}S.pendingSteps=readStepsHash();if(S.hashSeen)ls.set("meso-hash-seen",{h:S.hashSeen,at:Date.now(),ok:!!S.pendingSteps});
   let db=null;
   try{ db=await makeCloudDb() }catch(e){ console.error(e); db=null; S.cloudErr=String(e&&e.message||e); setTimeout(()=>toast("Нет связи с облаком: "+S.cloudErr+". Данные сохраняются только на этом устройстве."),800) }
-  if(!db){ S.store="local";S.sessions=ls.get("meso-sessions",[]);S.override=ls.get("meso-pos",null);S.daily=ls.get("meso-daily",{});S.settings=ls.get("meso-settings",null);applyCycle(ls.get("meso-cycle",null));sortS();render();applyStepsHash();return; }
+  if(!db){ S.store="local";S.sessions=ls.get("meso-sessions",[]);S.override=ls.get("meso-pos",null);S.daily=ls.get("meso-daily",{});S.settings=ls.get("meso-settings",null);applyCycle(ls.get("meso-cycle",null));loadProgram(S.settings&&S.settings.program);sortS();render();applyStepsHash();return; }
   S.db=db;
   reconcileDraft(db);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.view!=="workout")reconcileDraft(db)});
@@ -2704,7 +2719,7 @@ async function init(){
   },()=>{ if(S.store==="loading"){S.store="local";S.sessions=ls.get("meso-sessions",[]);sortS();renderSafe()} });
   db.doc("meta/position").onSnapshot(snap=>{ const v=snap.exists?snap.data():null; S.override=v&&v.day&&SEQ.includes(v.day)?v:null; renderSafe(); },()=>{});
   db.doc("meta/cycle").onSnapshot(snap=>{ applyCycle(snap.exists?snap.data():null); renderSafe(); },()=>{});
-  db.doc("meta/settings").onSnapshot(snap=>{ S.settings=snap.exists?snap.data():null; renderSafe(); },()=>{});
+  db.doc("meta/settings").onSnapshot(snap=>{ S.settings=snap.exists?snap.data():null; loadProgram(S.settings&&S.settings.program); renderSafe(); },()=>{});
   db.collection("daily").onSnapshot(snap=>{ const m={};snap.docs.forEach(d=>m[d.id]={...d.data(),date:d.id});S.daily=m;renderSafe();if(S.pendingSteps)applyStepsHash(); },()=>{});
   setTimeout(()=>{if(S.pendingSteps)applyStepsHash()},3000);
 }
