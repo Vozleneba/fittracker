@@ -889,6 +889,11 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .fx-busy{display:flex;align-items:center;gap:10px;padding:14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13.5px}
 .fx-busy i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--leaf,var(--wk));animation:fxspin .8s linear infinite}
 @keyframes fxspin{to{transform:rotate(360deg)}}
+.me-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dp-note{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--leaf) 45%,var(--line));font-size:12.5px;color:var(--muted)}
+.goal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
+.goal-row>span{display:flex;flex-direction:column;gap:4px}.goal-row b{font-size:14px}
+.me-goal{margin-top:6px;font-size:12.5px;color:var(--muted)}.me-goal b[data-s=ok]{color:var(--leaf)}.me-goal b[data-s=up]{color:#ff8a3d}.me-goal b[data-s=down]{color:#5c9dff}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1544,7 +1549,7 @@ function actMini(){
   return `<button class="card act-mini" data-act="tab" data-v="activity"><div class="top"><span>Шаги сегодня</span><b style="color:${stepColor((d.steps||0)/g)}">${(d.steps||0).toLocaleString("ru-RU")} <span>/ ${g.toLocaleString("ru-RU")}</span></b></div>
     <div class="stbar"><span style="width:${Math.min(100,Math.round((d.steps||0)/g*100))}%;background:${stepGrad((d.steps||0)/g)}"></span></div>
     <div class="top"><span>Кардио на неделе: ${cn} из 3–4</span><span>Вписать →</span></div>
-    ${(()=>{const w=wStats();const fo=dayDoc(t).food,FT=foodTarget(t),fl=`<div class="top"><span>Питание сегодня</span><span>${fo&&fo.kcal?`${Math.round(fo.kcal).toLocaleString("ru-RU")} / ${planVal(getPlan(),FT.w===5).k.toLocaleString("ru-RU")} ккал`:"не записано"}</span></div>`;
+    ${(()=>{const w=wStats();const fo=dayDoc(t).food,FT=foodTarget(t),fl=`<div class="top"><span>Питание сегодня</span><span>${fo&&fo.kcal?`${Math.round(fo.kcal).toLocaleString("ru-RU")} / ${goalNums(t).k.toLocaleString("ru-RU")} ккал`:"не записано"}</span></div>`;
       if(!w.E||!w.E.length)return fl+`<div class="top"><span>Вес сегодня не записан</span><span>Записать →</span></div>`;
       return `${fl}<div class="top"><span>Вес · 7 дн. ${kgF(w.cur?w.cur.avg:w.last.w)} кг</span><span>${w.ch!=null?`${sgn(w.ch)}${kgF(Math.abs(w.ch))} за неделю`:dayDoc(t).weight?"записан ✓":"сегодня не записан"}</span></div>`})()}</button>`;
 }
@@ -1703,7 +1708,7 @@ const DEF_PLAN=[
  {id:"m4",name:"Макароны + курица",items:[{p:"pasta",q:80},{p:"chick",q:150},{p:"oil",q:10},{p:"veg",q:0}]},
  {id:"m5",name:"Арахис",extra:true,items:[{p:"pean",q:30}]}];
 const allFoods=()=>({...FOODS,...((S.settings&&S.settings.foods)||{})});
-const getPlan=()=>(S.settings&&S.settings.mealPlan)||DEF_PLAN;
+const getPlan=d=>(d&&S.daily[d]&&S.daily[d].dayPlan)||(S.settings&&S.settings.mealPlan)||DEF_PLAN;
 const clone=o=>JSON.parse(JSON.stringify(o));
 const qn=v=>{const x=parseFloat(String(v??"").replace(",","."));return x>0?x:0};
 function itemVal(it,dl){const F=allFoods()[it.p];if(!F)return {k:0,p:0,f:0,c:0};const q=qn(it.q)+(dl&&it.dl?it.dl:0),g=F.u?q*F.g:q;
@@ -1714,7 +1719,7 @@ const mealLbl=(P,i)=>P[i].extra?"Дополнительно":`Приём ${P.sli
 function itemText(it,dl){const F=allFoods()[it.p];if(!F)return "";const q=qn(it.q);if(!q)return F.s;
   const add=dl&&it.dl,v=q+(add?it.dl:0),u=F.u||"г",t=`${F.s} ${String(v).replace(".",",")} ${u}`;return add?`<em>${t}</em>`:t}
 function mealSum(sel){const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s={k:0,p:0,f:0,c:0,n:0};
-  getPlan().forEach(m=>{if(dn[m.id]){const v=mealVal(m,dl);s.k+=v.k;s.p+=v.p;s.f+=v.f;s.c+=v.c;s.n++}});
+  getPlan(sel).forEach(m=>{if(dn[m.id]){const v=mealVal(m,dl);s.k+=v.k;s.p+=v.p;s.f+=v.f;s.c+=v.c;s.n++}});
   s.x=0;for(const x of dayDoc(sel).extra||[]){s.k+=Math.round(+x.k||0);s.p+=Math.round(+x.p||0);s.f+=Math.round(+x.f||0);s.c+=Math.round(+x.c||0);s.x++}return s}
 const dsg=v=>{v=Math.round(v);return v>0?"+"+v:v<0?"−"+Math.abs(v):"0"};
 function dLine(a,b){const d={k:a.k-b.k,p:a.p-b.p,f:a.f-b.f,c:a.c-b.c};if(!d.k&&!d.p&&!d.f&&!d.c)return `<span class="me-d0">без изменений</span>`;
@@ -1724,11 +1729,11 @@ function meRefresh(){const E=S.mEdit;if(!E)return;
   E.plan.forEach((m,mi)=>{const v=mealVal(m),o=E.orig.find(x=>x.id===m.id),el=document.getElementById("me-m-"+mi);
     if(el)el.innerHTML=`${mLine(v)}<div>${o?dLine(v,mealVal(o)):`<span class="me-d" data-s="up">новый приём</span>`}</div>`;
     m.items.forEach((it,ii)=>{const e2=document.getElementById(`me-i-${mi}-${ii}`);if(e2)e2.textContent=Math.round(itemVal(it).k)+" ккал"})});
-  const T=planVal(E.plan),O=planVal(E.orig),el=document.getElementById("me-day");if(el)el.innerHTML=`${mLine(T)}<div>${dLine(T,O)}</div>`}
+  const T=planVal(E.plan),O=planVal(E.orig),el=document.getElementById("me-day");if(el)el.innerHTML=`${mLine(T)}<div>${dLine(T,O)}</div>`;const gl=document.getElementById("me-goal");if(gl)gl.outerHTML=goalLine(T)}
 function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(E.orig);
   const opts=sel=>Object.entries(FD).map(([k,F])=>`<option value="${k}" ${k===sel?"selected":""}>${esc(F.s||F.n)}</option>`).join("")+`<option value="__new">+ Свой продукт…</option>`;
   return `<div class="me">
-    <div class="me-tot"><div class="eyebrow">Итого за день ${qh("Крупы и макароны — сухой вес, курица и картошка — сырой. Овощи без граммовки не считаются — впиши граммы, если хочешь учитывать. При замене продукта количество подбирается под те же калории. На разгрузке к рису и кускусу автоматически добавляется +60 / +50 г.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div></div>
+    <div class="me-tot"><div class="eyebrow">${E.scope==="day"?`Только на ${E.date===today()?"сегодня":dm(E.date)}`:"Обычный план · на все дни"} ${qh("Крупы и макароны — сухой вес, курица и картошка — сырой. Овощи без граммовки не считаются — впиши граммы, если хочешь учитывать. При замене продукта количество подбирается под те же калории. На разгрузке к рису и кускусу автоматически добавляется +60 / +50 г.")}</div><div id="me-day">${mLine(T)}<div>${dLine(T,O)}</div></div>${goalLine(T)}</div>
     ${E.plan.map((m,mi)=>{const v=mealVal(m),o=E.orig.find(x=>x.id===m.id);return `<div class="me-meal">
       <div class="me-mh"><span class="ml-l">${mealLbl(E.plan,mi)}</span><button class="link" data-act="medelm" data-m="${mi}">Удалить приём</button></div>
       <input class="me-name" id="me-n-${mi}" value="${esc(m.name)}" data-in="me" data-f="name" data-m="${mi}" aria-label="Название приёма" placeholder="Название">
@@ -1744,7 +1749,7 @@ function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(
       <button class="link" data-act="meaddi" data-m="${mi}" style="align-self:flex-start">+ продукт</button>
       <div class="me-mt" id="me-m-${mi}">${mLine(v)}<div>${o?dLine(v,mealVal(o)):`<span class="me-d" data-s="up">новый приём</span>`}</div></div>
     </div>`}).join("")}
-    <div class="me-row"><button class="link" data-act="meaddm">+ приём</button><button class="link" data-act="mereset" style="margin-left:auto">Вернуть исходный план</button></div>
+    <div class="me-row"><button class="link" data-act="meaddm">+ приём</button><button class="link" data-act="mereset" style="margin-left:auto">${E.scope==="day"?"Как в обычном плане":"Вернуть исходный план"}</button></div>
     <div class="me-row"><button class="btn ghost" data-act="mecancel" style="margin:0;flex:1">Отмена</button><button class="btn" data-act="mesave" style="margin:0;flex:1">Сохранить</button></div>
   </div>`}
 // ===== Еда вне плана: фото / описание / штрихкод
@@ -1762,11 +1767,10 @@ function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
   else if(F.mode==="code")panel=`<div class="fx-panel"><div class="rir">Не удалось прочитать штрихкод с фото — впиши цифры под ним.</div><div class="row-in"><input id="fx-code" inputmode="numeric" placeholder="4 006381 333931"><button class="btn small" data-act="fxcode">Найти</button></div><button class="link" data-act="fxcancel" style="align-self:flex-start">Отмена</button></div>`;
   else if(F.mode==="review"){const D=F.d;
     panel=`<div class="fx-panel fx-rev">
-      <div class="fx-src">${FX_SRC[D.src]||""}${D.conf?` · уверенность: ${({low:"низкая",medium:"средняя",high:"высокая"})[D.conf]||D.conf}`:""}</div>
+      <div class="fx-src">${FX_SRC[D.src]||""}</div>
       <input id="fx-n" value="${esc(D.name)}" placeholder="Название" aria-label="Название">
       <div class="fx-g">${[["g","г"],["k","ккал"],["p","Б"],["f","Ж"],["c","У"]].map(([k,l])=>`<label>${l}<input id="fx-${k}" inputmode="decimal" value="${D[k]!=null?Math.round(D[k]):""}" ${k==="g"?'oninput="fxGrams(this.value)"':""}></label>`).join("")}</div>
-      ${D.items&&D.items.length>1?`<div class="rir">${D.items.map(i=>`${esc(i.name)} ~${Math.round(i.grams||0)} г`).join(" · ")}</div>`:""}
-      ${D.src==="photo"||D.src==="text"?`<div class="rir">Оценка с запасом: калории, жиры и углеводы +15%, белок −10% — так сложнее случайно переесть.${D.hidden?" Учтено: "+esc(String(D.hidden).replace(/[.\s]+$/,""))+".":""} Поправь граммы, если знаешь точнее.</div>`:""}
+      ${D.items&&D.items.length?`<div class="rir">${D.items.map(i=>`${esc(i.name)} ~${Math.round(i.grams||0)} г`).join(" · ")}</div>`:""}
       ${D.src==="barcode"?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
       <div class="me-row"><button class="btn small" data-act="fxadd">Добавить в день</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
   return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Всё добавленное входит в итог дня.")}</div>
@@ -1815,15 +1819,23 @@ function fxHandle(a,b){
     saveDay(doc).then(()=>{render();toast(`Добавлено: ${Math.round(x.k)} ккал`)});return true}
   if(a==="fxdel"){const d=S.actDate||today(),doc={...dayDoc(d)};doc.extra=(doc.extra||[]).filter(x=>x.id!==b.dataset.id);if(!doc.extra.length)delete doc.extra;recalcFood(doc);saveDay(doc).then(render);return true}
   return false}
+function goalNums(d){const T=foodTarget(d),mid=v=>Array.isArray(v)?Math.round((v[0]+v[1])/2):Math.round(+v||0);return {k:mid(T.kcal),p:mid(T.p),f:mid(T.f),c:mid(T.c),w:T.w}}
+function goalLine(T){const G=goalNums(S.mEdit&&S.mEdit.date||today()),d=T.k-G.k;
+  return `<div id="me-goal" class="me-goal">Цель ${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c} — ${Math.abs(d)<=50?`<b data-s="ok">в цели</b>`:d>0?`<b data-s="up">план больше на ${dsg(d).replace("+","")}</b>`:`<b data-s="down">план меньше на ${Math.abs(d)}</b>`}</div>`}
+function goalBlock(sel){const ct=S.settings&&S.settings.foodTarget,G=goalNums(sel);
+  if(S.tgEdit)return `<div class="fx-panel"><div class="eyebrow">Цель на день ${qh("Сколько нужно съесть за день. Если ккал оставить пустыми — посчитаю из БЖУ (4/9/4). На разгрузочной неделе трекер сам добавит углеводы.")}</div>
+    <div class="fx-g" style="grid-template-columns:repeat(4,1fr)">${[["k","ккал",ct&&ct.kcal],["p","Б, г",ct&&ct.p],["f","Ж, г",ct&&ct.f],["c","У, г",ct&&ct.c]].map(([k,l,v])=>`<label>${l}<input id="tg-${k}" inputmode="numeric" value="${v||""}"></label>`).join("")}</div>
+    <div class="me-row"><button class="btn small" data-act="tgsave">Сохранить цель</button><button class="link" data-act="tgcancel">Отмена</button></div></div>`;
+  return `<div class="goal-row"><span><span class="eyebrow">Цель на день</span><b class="num">${G.k.toLocaleString("ru-RU")} ккал · Б${G.p} Ж${G.f} У${G.c}</b></span><button class="link" data-act="tgedit">Изменить</button></div>`}
 async function saveSettings(){return S.store==="db"?S.db.doc("meta/settings").set(S.settings):ls.set("meso-settings",S.settings)}
 function mealsCard(sel){
-  const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(),all=planVal(P,dl).k;
+  const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(sel),G=goalNums(sel),dp=!!dayDoc(sel).dayPlan;
   const ck='<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   return `<section class="card ml-card dt" data-open="${S.dt.meals?1:0}">
     <div class="dt-sum ml-head" role="button" tabindex="0" data-act="dt" data-k="meals" aria-label="План питания: показать или скрыть">
       <div class="w-top"><div><div class="eyebrow">План питания${dl?" · разгрузка":""} ${qh("Нажми на приём, когда съел; повторное нажатие снимает отметку. Отмеченное само записывается в итог дня. Крупы — сухой вес, курица и картошка — сырой. Замены: кускус 80 г = рис 65 г = макароны 70 г = картошка 300 г; тунец 1 банка = курица 180 г.")}</div><div class="w-big num">${s.n}<small> из ${P.length} ${plural(P.length,"приёма","приёмов","приёмов")}</small></div></div>
-      <div class="ml-sum"><b>${s.k.toLocaleString("ru-RU")}</b><span>из ${all.toLocaleString("ru-RU")} ккал</span></div></div>
-      <div class="ml-mac">${(()=>{const T=planVal(P,dl);return [["Белки","p"],["Жиры","f"],["Углеводы","c"]].map(([l,x])=>`<div class="ml-m"><span>${l}</span><b class="num">${s[x]}<small> / ${T[x]} г</small></b><i><em style="width:${T[x]?Math.min(100,s[x]/T[x]*100):0}%"></em></i></div>`).join("")})()}</div>
+      <div class="ml-sum"><b>${s.k.toLocaleString("ru-RU")}</b><span>из ${G.k.toLocaleString("ru-RU")} ккал</span></div></div>
+      <div class="ml-mac">${(()=>{const T=G;return [["Белки","p"],["Жиры","f"],["Углеводы","c"]].map(([l,x])=>`<div class="ml-m"><span>${l}</span><b class="num">${s[x]}<small> / ${T[x]} г</small></b><i><em style="width:${T[x]?Math.min(100,s[x]/T[x]*100):0}%"></em></i></div>`).join("")})()}</div>
       <div class="ml-dots"><span class="ml-chev nx-hint">${S.dt.meals?"Скрыть":"Показать"}</span></div>
     </div>
     <div class="dt-body ml-body">${S.mEdit?mealEditor():`<div class="ml-list">${P.map((m,mi)=>{const d=dn[m.id],v=mealVal(m,dl);
@@ -1832,7 +1844,9 @@ function mealsCard(sel){
         <span class="ml-t"><span class="ml-l">${mealLbl(P,mi)}${d?` · съел в ${d}`:""}</span><b>${esc(m.name)}</b><span class="ml-i">${it}</span></span>
         <span class="ml-k num">${v.k}<small>Б${v.p} Ж${v.f} У${v.c}</small></span></button>`}).join("")}</div>
     ${extrasBlock(sel)}
-    <button class="btn ghost" data-act="meedit" style="margin-top:0">Изменить план питания</button>
+    ${dp?`<div class="dp-note"><span>План на ${sel===today()?"сегодня":dm(sel)} изменён — на другие дни это не влияет</span><button class="link" data-act="medayreset">Вернуть обычный</button></div>`:""}
+    <div class="me-btns"><button class="btn ghost" data-act="meedit" data-s="day" style="margin:0">${sel===today()?"Изменить сегодня":"Изменить на "+dm(sel)}</button><button class="btn ghost" data-act="meedit" data-s="base" style="margin:0">Обычный план</button></div>
+    ${goalBlock(sel)}
     ${(()=>{const f=dayDoc(sel).food;return f&&f.kcal&&f.src!=="plan"?`<div class="w-verdict" data-t="up">За день записано ${f.src==="health"?"из FatSecret":"вручную"}: <b>${Math.round(f.kcal).toLocaleString("ru-RU")} ккал</b> · Б ${Math.round(f.p||0)} Ж ${Math.round(f.f||0)} У ${Math.round(f.c||0)}</div>`:""})()}
     ${(()=>{const mt=maintenance();return mt?`<div class="w-verdict" data-t="up"><b>Расчётная поддержка ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал</b> — по ${mt.days} дням питания и тренду веса (±150 ккал).</div>`:""})()}
     <button class="btn ghost" data-act="tab" data-v="calc" style="margin-top:0">Рассчитать норму калорий и БЖУ</button>`}
@@ -2211,7 +2225,7 @@ function vHome(pos){
       <div><b>${W.rest.replace(/\s*(мин|с)$/,"")}</b><span>отдых, ${/с$/.test(W.rest)?"с":"мин"}</span></div>
     </div>
     ${hdet}
-    ${(()=>{const pv=planVal(getPlan(),vw===5);return `<div class="nutri"><span>Питание: <b>${pv.k.toLocaleString("ru-RU")} ккал</b></span><span class="num">Б ${pv.p} · Ж ${pv.f} · У ${pv.c}</span></div>`})()}
+    ${(()=>{const pv=goalNums(today());return `<div class="nutri"><span>Питание: <b>${pv.k.toLocaleString("ru-RU")} ккал</b></span><span class="num">Б ${pv.p} · Ж ${pv.f} · У ${pv.c}</span></div>`})()}
   </section>
   ${alert}
   <section class="card next${vw!==pos.week?" neu":""}">
@@ -2499,9 +2513,15 @@ document.addEventListener("click",ev=>{
   else if(a==="wsave"){const d=S.actDate||today(),v=parseFloat(String($("#w-in").value).replace(",","."));
     if(!(v>=30&&v<=250)){toast("Впиши вес в кг, например 82,4");return}
     saveDay({...dayDoc(d),weight:Math.round(v*10)/10}).then(()=>{S.wSel=d;render();toast(`Вес ${kgF(v)} кг записан`)})}
-  else if(a==="meedit"){S.mEdit={plan:clone(getPlan()),orig:clone(getPlan()),cf:null,foods:{}};S.dt.meals=true;render()}
+  else if(a==="meedit"){const d=S.actDate||today(),sc=b.dataset.s==="day"?"day":"base",P0=sc==="day"?getPlan(d):getPlan();S.mEdit={plan:clone(P0),orig:clone(P0),cf:null,foods:{},scope:sc,date:d};S.dt.meals=true;render()}
+  else if(a==="medayreset"){const d=S.actDate||today(),doc={...dayDoc(d)};delete doc.dayPlan;recalcFood(doc);saveDay(doc).then(()=>{render();toast("Вернул обычный план")})}
+  else if(a==="tgedit"){S.tgEdit=true;render()}
+  else if(a==="tgcancel"){S.tgEdit=false;render()}
+  else if(a==="tgsave"){const g=k=>parseFloat(String(($("#tg-"+k)||{}).value||"").replace(",","."))||0;let k=g("k");const p=g("p"),f=g("f"),c=g("c");
+    if(!(p>0&&f>0&&c>0)){toast("Впиши белки, жиры и углеводы");return}if(!k)k=Math.round(p*4+f*9+c*4);
+    S.settings={...(S.settings||{}),foodTarget:{kcal:Math.round(k),p:Math.round(p),f:Math.round(f),c:Math.round(c)}};S.tgEdit=false;saveSettings().then(()=>{render();toast("Цель сохранена")},()=>toast("Не удалось сохранить"))}
   else if(a==="mecancel"){S.mEdit=null;render()}
-  else if(a==="mereset"){S.mEdit.plan=clone(DEF_PLAN);render()}
+  else if(a==="mereset"){S.mEdit.plan=clone(S.mEdit.scope==="day"?getPlan():DEF_PLAN);render()}
   else if(a==="meaddi"){const m=S.mEdit.plan[+b.dataset.m];m.items.push({p:"veg",q:""});render();const l=m.items.length-1,el=document.getElementById(`me-p-${b.dataset.m}-${l}`);if(el)el.focus()}
   else if(a==="medeli"){S.mEdit.plan[+b.dataset.m].items.splice(+b.dataset.i,1);S.mEdit.cf=null;render()}
   else if(a==="meaddm"){S.mEdit.plan.push({id:"m"+Date.now().toString(36),name:"Новый приём",items:[{p:"chick",q:150}]});render()}
@@ -2513,9 +2533,11 @@ document.addEventListener("click",ev=>{
     saveSettings().catch(()=>toast("Не удалось сохранить продукт"));
     const it=S.mEdit.plan[+b.dataset.m].items[+b.dataset.i];it.p=id;it.q=it.q||100;delete it.dl;S.mEdit.cf=null;render();toast(`Продукт «${n}» добавлен`)}
   else if(a==="mesave"){const P=S.mEdit.plan.map(m=>({...m,name:(m.name||"").trim()||"Приём",items:m.items.filter(it=>allFoods()[it.p]).map(it=>({...it,q:qn(it.q)}))}));
+    if(S.mEdit.scope==="day"){const d=S.mEdit.date,doc={...dayDoc(d),dayPlan:P};S.mEdit=null;recalcFood(doc);
+      saveDay(doc).then(()=>{render();toast("План изменён только на "+(d===today()?"сегодня":dm(d)))},()=>toast("Не удалось сохранить"));return}
     S.settings={...(S.settings||{}),mealPlan:P};S.mEdit=null;
     saveSettings().then(()=>{const d=S.actDate||today(),doc=dayDoc(d);
-      if(doc.food&&doc.food.src==="plan"){const s2=mealSum(d);const nd={...doc};if(s2.n||s2.x)nd.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete nd.food;return saveDay(nd)}}).then(()=>{render();toast("План питания сохранён")},()=>toast("Не удалось сохранить"))}
+      if(doc.food&&doc.food.src==="plan"){const s2=mealSum(d);const nd={...doc};if(s2.n||s2.x)nd.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete nd.food;return saveDay(nd)}}).then(()=>{render();toast("Обычный план сохранён — действует на все дни")},()=>toast("Не удалось сохранить"))}
   else if(a.startsWith("fx")&&fxHandle(a,b)){}
   else if(a==="meal"){const d=S.actDate||today(),doc={...dayDoc(d)},mm={...(doc.meals||{})},id=b.dataset.id;
     if(mm[id])delete mm[id];else mm[id]=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
