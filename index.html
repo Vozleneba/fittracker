@@ -2416,7 +2416,7 @@ const OB_Q=[
  {k:"goal",t:"Твоя цель",o:[["cut","Сбросить жир"],["gain","Набрать мышцы"],["recomp","Подтянуть фигуру"],["keep","Держать форму"]]},
  {k:"sex",t:"Пол",o:[["m","Мужской"],["f","Женский"]]},
  {k:"exp",t:"Сколько тренируешься",o:[["new","Только начинаю"],["mid","От полугода до 2 лет"],["pro","Больше 2 лет"]]},
- {k:"days",t:"Сколько раз в неделю тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
+ {k:"days",t:"Сколько раз в неделю готов тренироваться",o:[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"]]},
  {k:"place",t:"Где тренируешься",o:[["gym","В зале"],["home","Дома с гантелями"]]},
  {k:"focus",t:"Акцент",o:[["even","Всё тело равномерно"],["glute","Ягодицы и ноги"]]}];
 function obPreset(A){const d=+A.days;
@@ -2432,7 +2432,7 @@ function vOnboard(){const O=S.ob||(S.ob={a:{...(S.settings&&S.settings.profile?{
       ${r?`<div class="ob-k"><b class="num">${r.kcal.toLocaleString("ru-RU")} ккал</b><span>в день · Б ${r.p} · Ж ${r.f} · У ${r.c}</span></div>${r.note.map(n=>`<div class="w-verdict" data-t="warn">${esc(n)}</div>`).join("")}`:""}
       <button class="btn" data-act="obgo" style="margin:0">Начать</button><div class="rir">Всё можно поменять потом: программу — в «Моей программе», калории — в «Питании».</div></section>`}
   return `<div class="wk-head">${S.settings&&S.settings.profile?`<button class="back" data-act="obx" aria-label="Назад">←</button>`:""}<div style="flex:1"><h2>Давай познакомимся</h2><div class="rir">6 вопросов — и подберу программу и питание</div></div></div>
-  ${OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").map(q=>`<section class="card ob-q"><div class="eyebrow">${q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
+  ${OB_Q.filter(q=>q.k!=="focus"||A.place!=="home").map(q=>`<section class="card ob-q"><div class="eyebrow">${q.k==="days"?`Сколько раз в неделю ${A.sex==="f"?"готова":A.sex==="m"?"готов":"готов(а)"} тренироваться`:q.t}</div><div class="pe-chips ob-ch">${q.o.map(([v,l])=>`<button data-act="obs" data-k="${q.k}" data-v="${v}" aria-pressed="${A[q.k]===v}">${l}</button>`).join("")}</div></section>`).join("")}
   <section class="card ob-q"><div class="eyebrow">О тебе</div><div class="fx-g" style="grid-template-columns:repeat(3,1fr)">
     <label>Возраст<input id="ob-age" inputmode="numeric" value="${esc(A.age||"")}" data-in="ob" data-k="age"></label>
     <label>Рост, см<input id="ob-height" inputmode="numeric" value="${esc(A.height||"")}" data-in="ob" data-k="height"></label>
