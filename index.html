@@ -875,6 +875,20 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .h-acts button svg{width:18px;height:18px;color:var(--wk-ink,var(--wk))}
 .h-acts button.d,.h-acts button.d svg{color:#ff5a4e}
 .h-acts button:active{transform:scale(.96)}
+.fx{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px}
+.fx-it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
+.fx-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.fx-t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fx-t span{font-size:11.5px;color:var(--muted)}
+.fx-k{display:flex;flex-direction:column;align-items:flex-end;font-weight:700}.fx-k small{font-size:10.5px;color:var(--muted);font-weight:600}
+.fx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fx-acts button{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 6px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2));color:var(--fg);font:600 13px var(--sans,system-ui);cursor:pointer}
+.fx-acts svg{width:17px;height:17px;color:var(--leaf,var(--wk))}
+.fx-panel{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
+.fx-panel textarea{min-height:70px}
+.fx-g{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.fx-g label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}.fx-g input{min-width:0;padding:8px 6px;text-align:center}
+.fx-src{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--leaf,var(--wk))}
+.fx-busy{display:flex;align-items:center;gap:10px;padding:14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13.5px}
+.fx-busy i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--leaf,var(--wk));animation:fxspin .8s linear infinite}
+@keyframes fxspin{to{transform:rotate(360deg)}}
 </style>
 
 <div class="wrap" id="app"><div class="empty">Загружаю программу…</div></div>
@@ -1700,7 +1714,8 @@ const mealLbl=(P,i)=>P[i].extra?"Дополнительно":`Приём ${P.sli
 function itemText(it,dl){const F=allFoods()[it.p];if(!F)return "";const q=qn(it.q);if(!q)return F.s;
   const add=dl&&it.dl,v=q+(add?it.dl:0),u=F.u||"г",t=`${F.s} ${String(v).replace(".",",")} ${u}`;return add?`<em>${t}</em>`:t}
 function mealSum(sel){const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s={k:0,p:0,f:0,c:0,n:0};
-  getPlan().forEach(m=>{if(dn[m.id]){const v=mealVal(m,dl);s.k+=v.k;s.p+=v.p;s.f+=v.f;s.c+=v.c;s.n++}});return s}
+  getPlan().forEach(m=>{if(dn[m.id]){const v=mealVal(m,dl);s.k+=v.k;s.p+=v.p;s.f+=v.f;s.c+=v.c;s.n++}});
+  s.x=0;for(const x of dayDoc(sel).extra||[]){s.k+=Math.round(+x.k||0);s.p+=Math.round(+x.p||0);s.f+=Math.round(+x.f||0);s.c+=Math.round(+x.c||0);s.x++}return s}
 const dsg=v=>{v=Math.round(v);return v>0?"+"+v:v<0?"−"+Math.abs(v):"0"};
 function dLine(a,b){const d={k:a.k-b.k,p:a.p-b.p,f:a.f-b.f,c:a.c-b.c};if(!d.k&&!d.p&&!d.f&&!d.c)return `<span class="me-d0">без изменений</span>`;
   return `<span class="me-d" data-s="${d.k>0?"up":d.k<0?"down":"eq"}">${dsg(d.k)} ккал · Б ${dsg(d.p)} · Ж ${dsg(d.f)} · У ${dsg(d.c)}</span>`}
@@ -1732,6 +1747,73 @@ function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(
     <div class="me-row"><button class="link" data-act="meaddm">+ приём</button><button class="link" data-act="mereset" style="margin-left:auto">Вернуть исходный план</button></div>
     <div class="me-row"><button class="btn ghost" data-act="mecancel" style="margin:0;flex:1">Отмена</button><button class="btn" data-act="mesave" style="margin:0;flex:1">Сохранить</button></div>
   </div>`}
+// ===== Еда вне плана: фото / описание / штрихкод
+const FX_SRC={photo:"фото · оценка ИИ",text:"описание · оценка ИИ",barcode:"штрихкод · этикетка",manual:"вручную"};
+function fxCloud(){return typeof cloudApi==="function"&&typeof tgInitData==="function"&&!!tgInitData()}
+function recalcFood(doc){const d=doc.date;S.daily[d]=doc;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
+  if(auto){const s2=mealSum(d);if(s2.n||s2.x)doc.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete doc.food}return doc}
+function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
+  const list=X.map(x=>`<div class="fx-it"><span class="fx-t"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""}</span></span><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
+  let panel="";
+  if(F.mode==="busy")panel=`<div class="fx-busy"><i></i>${esc(F.msg||"Считаю…")}</div>`;
+  else if(F.mode==="text")panel=`<div class="fx-panel"><textarea id="fx-text" placeholder="Например: шаурма большая в лаваше и латте 400 мл">${esc(F.text||"")}</textarea>
+    <div class="me-row"><button class="btn small" data-act="fxsend">Оценить</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`;
+  else if(F.mode==="code")panel=`<div class="fx-panel"><div class="rir">Не удалось прочитать штрихкод с фото — впиши цифры под ним.</div><div class="row-in"><input id="fx-code" inputmode="numeric" placeholder="4 006381 333931"><button class="btn small" data-act="fxcode">Найти</button></div><button class="link" data-act="fxcancel" style="align-self:flex-start">Отмена</button></div>`;
+  else if(F.mode==="review"){const D=F.d;
+    panel=`<div class="fx-panel fx-rev">
+      <div class="fx-src">${FX_SRC[D.src]||""}${D.conf?` · уверенность: ${({low:"низкая",medium:"средняя",high:"высокая"})[D.conf]||D.conf}`:""}</div>
+      <input id="fx-n" value="${esc(D.name)}" placeholder="Название" aria-label="Название">
+      <div class="fx-g">${[["g","г"],["k","ккал"],["p","Б"],["f","Ж"],["c","У"]].map(([k,l])=>`<label>${l}<input id="fx-${k}" inputmode="decimal" value="${D[k]!=null?Math.round(D[k]):""}" ${k==="g"?'oninput="fxGrams(this.value)"':""}></label>`).join("")}</div>
+      ${D.items&&D.items.length>1?`<div class="rir">${D.items.map(i=>`${esc(i.name)} ~${Math.round(i.grams||0)} г`).join(" · ")}</div>`:""}
+      ${D.src==="photo"||D.src==="text"?`<div class="rir">Оценка с запасом: калории, жиры и углеводы +15%, белок −10% — так сложнее случайно переесть.${D.hidden?" Учтено: "+esc(String(D.hidden).replace(/[.\s]+$/,""))+".":""} Поправь граммы, если знаешь точнее.</div>`:""}
+      ${D.src==="barcode"?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
+      <div class="me-row"><button class="btn small" data-act="fxadd">Добавить в день</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
+  return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Для блюд ИИ даёт оценку с запасом вверх, для упаковок берутся цифры с этикетки из базы Open Food Facts. Всё добавленное входит в итог дня.")}</div>
+    ${list}
+    ${F.mode?panel:`<div class="fx-acts"><button data-act="fxphoto">${FXI.cam}Фото</button><button data-act="fxtext">${FXI.txt}Описать</button><button data-act="fxbc">${FXI.bc}Штрихкод</button></div>`}
+    <input type="file" id="fx-file" accept="image/*" capture="environment" hidden onchange="fxFile(this,'photo')">
+    <input type="file" id="fx-bcfile" accept="image/*" capture="environment" hidden onchange="fxFile(this,'barcode')">
+  </div>`}
+const FXI={cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  txt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+  bc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6v12M7 6v12M11 6v12M14 6v12M16 6v12M20 6v12"/></svg>'};
+function fxGrams(v){const D=S.fx&&S.fx.d;if(!D)return;const g=parseFloat(String(v).replace(",","."));if(!(g>0))return;
+  const base=D.per?{g:100,...D.per}:D.base;if(!base||!base.g)return;const r=g/base.g;
+  for(const k of ["k","p","f","c"]){const el=$("#fx-"+k);if(el)el.value=Math.round(base[k]*r)}}
+async function fxResize(file,max=1024){
+  const url=URL.createObjectURL(file);try{const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+    const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),cv=document.createElement("canvas");cv.width=Math.round(img.naturalWidth*s);cv.height=Math.round(img.naturalHeight*s);
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);return cv.toDataURL("image/jpeg",.82).split(",")[1]}finally{URL.revokeObjectURL(url)}}
+async function fxDecode(file){
+  if("BarcodeDetector" in window){try{const bd=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});const r=await bd.detect(await createImageBitmap(file));if(r&&r[0])return r[0].rawValue}catch(e){}}
+  if(!window.ZXing)await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+  const url=URL.createObjectURL(file);try{const h=new Map();h.set(ZXing.DecodeHintType.TRY_HARDER,true);
+    const rd=new ZXing.BrowserMultiFormatReader(h);const r=await rd.decodeFromImageUrl(url);return r&&r.getText()}catch(e){return null}finally{URL.revokeObjectURL(url)}}
+function fxAiDraft(j,src){const a=j.adj||{};S.fx={mode:"review",d:{src,name:j.dish||"Блюдо",g:a.g||null,k:a.k,p:a.p,f:a.f,c:a.c,base:{...a},items:j.items||[],hidden:j.hidden||"",conf:j.confidence}};render()}
+async function fxRun(fn,msg){S.fx={mode:"busy",msg};render();try{await fn()}catch(e){S.fx=null;render();toast("Не получилось: "+(e&&e.message||e))}}
+window.fxFile=async(inp,kind)=>{const f=inp.files&&inp.files[0];inp.value="";if(!f)return;
+  if(kind==="photo"){if(!fxCloud()){toast("Распознавание еды работает в Telegram-версии");return}
+    fxRun(async()=>{const img=await fxResize(f);const j=await cloudApi("food",{image:img});fxAiDraft(j,"photo")},"Смотрю на блюдо…")}
+  else fxRun(async()=>{const code=await fxDecode(f);if(!code){S.fx={mode:"code"};render();return}await fxLookup(code)},"Читаю штрихкод…")};
+async function fxLookup(code){if(!fxCloud()){toast("Поиск по штрихкоду работает в Telegram-версии");S.fx=null;render();return}
+  const j=await cloudApi("barcode",{code});if(!j.found){S.fx={mode:"code"};render();toast("Продукта "+code+" нет в базе — впиши вручную через «Описать»");return}
+  const g=j.serving&&j.serving>0?j.serving:100;S.fx={mode:"review",d:{src:"barcode",name:j.name,g,per:j.per,k:j.per.k*g/100,p:j.per.p*g/100,f:j.per.f*g/100,c:j.per.c*g/100}};render()}
+function fxHandle(a,b){
+  if(a==="fxphoto"){$("#fx-file").click();return true}
+  if(a==="fxbc"){$("#fx-bcfile").click();return true}
+  if(a==="fxtext"){S.fx={mode:"text",text:""};render();setTimeout(()=>{const t=$("#fx-text");if(t)t.focus()},50);return true}
+  if(a==="fxcancel"){S.fx=null;render();return true}
+  if(a==="fxsend"){const t=($("#fx-text").value||"").trim();if(t.length<3){toast("Опиши, что съел");return true}
+    if(!fxCloud()){toast("Оценка по описанию работает в Telegram-версии");return true}
+    fxRun(async()=>{const j=await cloudApi("food",{text:t});fxAiDraft(j,"text")},"Считаю…");return true}
+  if(a==="fxcode"){const c=($("#fx-code").value||"").replace(/\D/g,"");if(c.length<8){toast("Нужно 8–14 цифр");return true}fxRun(()=>fxLookup(c),"Ищу продукт…");return true}
+  if(a==="fxadd"){const num=k=>{const v=parseFloat(String($("#fx-"+k).value).replace(",","."));return v>0?v:0};
+    const x={id:Date.now().toString(36),name:($("#fx-n").value||"Еда").trim().slice(0,80),g:num("g"),k:num("k"),p:num("p"),f:num("f"),c:num("c"),src:S.fx.d.src,t:new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})};
+    if(!x.k){toast("Впиши калории");return true}
+    const d=S.actDate||today(),doc={...dayDoc(d)};doc.extra=[...(doc.extra||[]),x];recalcFood(doc);S.fx=null;
+    saveDay(doc).then(()=>{render();toast(`Добавлено: ${Math.round(x.k)} ккал`)});return true}
+  if(a==="fxdel"){const d=S.actDate||today(),doc={...dayDoc(d)};doc.extra=(doc.extra||[]).filter(x=>x.id!==b.dataset.id);if(!doc.extra.length)delete doc.extra;recalcFood(doc);saveDay(doc).then(render);return true}
+  return false}
 async function saveSettings(){return S.store==="db"?S.db.doc("meta/settings").set(S.settings):ls.set("meso-settings",S.settings)}
 function mealsCard(sel){
   const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(),all=planVal(P,dl).k;
@@ -1748,6 +1830,7 @@ function mealsCard(sel){
       return `<button class="ml" data-act="meal" data-id="${m.id}" aria-pressed="${!!d}"><span class="ml-ck">${ck}</span>
         <span class="ml-t"><span class="ml-l">${mealLbl(P,mi)}${d?` · съел в ${d}`:""}</span><b>${esc(m.name)}</b><span class="ml-i">${it}</span></span>
         <span class="ml-k num">${v.k}<small>Б${v.p} Ж${v.f} У${v.c}</small></span></button>`}).join("")}</div>
+    ${extrasBlock(sel)}
     <button class="btn ghost" data-act="meedit" style="margin-top:0">Изменить план питания</button>
     ${(()=>{const f=dayDoc(sel).food;return f&&f.kcal&&f.src!=="plan"?`<div class="w-verdict" data-t="up">За день записано ${f.src==="health"?"из FatSecret":"вручную"}: <b>${Math.round(f.kcal).toLocaleString("ru-RU")} ккал</b> · Б ${Math.round(f.p||0)} Ж ${Math.round(f.f||0)} У ${Math.round(f.c||0)}</div>`:""})()}
     ${(()=>{const mt=maintenance();return mt?`<div class="w-verdict" data-t="up"><b>Расчётная поддержка ≈ ${mt.tdee.toLocaleString("ru-RU")} ккал</b> — по ${mt.days} дням питания и тренду веса (±150 ккал).</div>`:""})()}
@@ -2431,11 +2514,12 @@ document.addEventListener("click",ev=>{
   else if(a==="mesave"){const P=S.mEdit.plan.map(m=>({...m,name:(m.name||"").trim()||"Приём",items:m.items.filter(it=>allFoods()[it.p]).map(it=>({...it,q:qn(it.q)}))}));
     S.settings={...(S.settings||{}),mealPlan:P};S.mEdit=null;
     saveSettings().then(()=>{const d=S.actDate||today(),doc=dayDoc(d);
-      if(doc.food&&doc.food.src==="plan"){const s2=mealSum(d);const nd={...doc};if(s2.n)nd.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete nd.food;return saveDay(nd)}}).then(()=>{render();toast("План питания сохранён")},()=>toast("Не удалось сохранить"))}
+      if(doc.food&&doc.food.src==="plan"){const s2=mealSum(d);const nd={...doc};if(s2.n||s2.x)nd.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete nd.food;return saveDay(nd)}}).then(()=>{render();toast("План питания сохранён")},()=>toast("Не удалось сохранить"))}
+  else if(a.startsWith("fx")&&fxHandle(a,b)){}
   else if(a==="meal"){const d=S.actDate||today(),doc={...dayDoc(d)},mm={...(doc.meals||{})},id=b.dataset.id;
     if(mm[id])delete mm[id];else mm[id]=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     doc.meals=mm;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
-    if(auto){S.daily[d]=doc;const s2=mealSum(d);doc.food=s2.n?{kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"}:null;if(!doc.food)delete doc.food}
+    if(auto){S.daily[d]=doc;const s2=mealSum(d);doc.food=(s2.n||s2.x)?{kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"}:null;if(!doc.food)delete doc.food}
     saveDay(doc).then(()=>render())}
   else if(a==="nsave"){const d=S.actDate||today(),num=id=>{const v=parseFloat(String($(id).value).replace(",","."));return v>0?v:0};
     let k=num("#n-k");const p=num("#n-p"),f=num("#n-f"),c=num("#n-c");if(!k&&(p||f||c))k=Math.round(p*4+f*9+c*4);
