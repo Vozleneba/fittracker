@@ -1707,10 +1707,18 @@ function calcCompute(c){
   if(bmi<18.5&&(c.goal==="cut"||c.goal==="recomp"))note.push("У тебя и так мало веса — худеть не стоит. Лучше держать вес или набирать.");
   if(bf&&bf<(c.sex==="m"?12:20)&&c.goal==="cut"&&c.pace!=="soft")note.push("Жира уже мало — безопаснее худеть медленно.");
   // белок: на дефиците выше; при высоком % жира считаем от сухой массы
-  const pK=c.goal==="cut"?2.2:c.goal==="recomp"?2.0:1.8,base=(lbm&&bf>(c.sex==="m"?25:32))?lbm*1.25:w;
-  const p=Math.round(base*pK/5)*5;let f=Math.round(Math.max(w*.8,kcal*.25/9)/5)*5;
+  // Защита у женщин на сушке: не ниже базового обмена
+  if(c.sex==="f"&&c.goal==="cut"&&kcal<bmr){kcal=bmr;note.push("Ниже базового обмена опускаться не стоит — поставил его как минимум.")}
+  // Белок: 1,6–2,0 г/кг (Morton 2018; ISSN). При ИМТ > 30 — от желаемого веса (ИМТ 25)
+  const fem=c.sex==="f",pK=c.goal==="cut"?(fem?1.8:2.0):c.goal==="recomp"?1.8:1.6,tw=bmi>30?25*(h/100)**2:w,base=(lbm&&bf>(fem?32:25))?Math.min(lbm*1.25,tw):tw;
+  const p=Math.round(base*pK/5)*5;
+  // Жиры: женщины ≥1 г/кг и ≥30% калорий, мужчины ≥0,8 г/кг и ≥25%
+  let f=Math.round(Math.max(tw*(fem?1:.8),kcal*(fem?.3:.25)/9)/5)*5;
   let carb=Math.round((kcal-p*4-f*9)/4/5)*5;if(carb<80){carb=80;note.push("Углеводов очень мало — на тяжёлых тренировках не хватит сил.")}
   kcal=Math.round((p*4+f*9+carb*4)/10)*10;
+  // Доступность энергии: калории минус тренировки на кг сухой массы (порог ~30 — Loucks 2003, RED-S)
+  {const ebf=Math.min(55,Math.max(8,1.2*bmi+.23*a-10.8*(fem?0:1)-5.4))/100,ffm=lbm||w*(1-ebf),ex=Math.min(6,+c.train||0)*300/7,ea=(kcal-ex)/ffm; // % жира по Deurenberg 1991, если не указан
+   if(ea<30&&c.goal==="cut"&&bmi<30)note.push(`Энергии маловато: после тренировок остаётся ~${Math.round(ea)} ккал на кг мышц и костей при норме от 30. Так долго нельзя — ${fem?"может сбиться цикл, ":""}падают силы и восстановление. Выбери темп помедленнее или добавь 100–200 ккал.`)}
   return {bmr:Math.round(bmr),tdee:Math.round(tdee/10)*10,pal:Math.round(pal*100)/100,kcal,p,f,c:carb,bmi,lbm,note,rate,
     perWeek:c.goal==="cut"?Math.round((tdee-kcal)*7/7700*100)/100:c.goal==="gain"?Math.round((kcal-tdee)*7/7700*100)/100:0}}
 function calcResHTML(){const c=S.calc,r=calcCompute(c);
