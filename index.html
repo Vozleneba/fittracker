@@ -2424,12 +2424,12 @@ const FOCUS={
  even:{n:"Всё тело равномерно"},
  strength:{n:"Сила",d:"меньше повторов, тяжелее веса"},
  hyp:{n:"Гипертрофия (рост мышц)",d:"средние повторы, больше подходов"},
- chest:{n:"Грудь",m:["chest"]},back:{n:"Спина",m:["back"]},shoulders:{n:"Плечи",m:["shoulders"]},arms:{n:"Руки",m:["biceps","triceps"]},
+ chest:{n:"Грудь",m:["chest"]},back:{n:"Спина",m:["back"]},shoulders:{n:"Плечи",m:["shoulders"]},arms:{n:"Руки",m:["biceps","triceps"]},legs:{n:"Ноги",m:["quads","hams"]},
  glute:{n:"Ягодицы и ноги",m:["glutes","hams"]},upper:{n:"Верх тела и осанка",m:["back","shoulders"]}};
-const FOCUS_BY_SEX={m:["even","strength","hyp","chest","back","shoulders","arms"],f:["even","glute","strength","hyp","upper"],"":["even","strength","hyp"]};
+const FOCUS_ALL=["even","strength","hyp","chest","back","shoulders","arms","legs","glute","upper"],FOCUS_BY_SEX={m:FOCUS_ALL,f:FOCUS_ALL,"":FOCUS_ALL};
 const EXTRA_BY_M={chest:{gym:["c_cfly","c_pecdeck","c_dbinc"],home:["c_dbfly","c_pushup"]},back:{gym:["c_cgpd","c_1crow","c_sapd"],home:["c_dbrow","c_dbpullover"]},
  shoulders:{gym:["c_clat","c_rdm","c_facepull"],home:["c_dblat","c_dbrear"]},biceps:{gym:["c_bayes","c_preacher"],home:["c_inccurl","c_conc"]},
- triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc"],home:["c_dbrdl","c_slrdl"]}};
+ triceps:{gym:["c_cohe","c_1push"],home:["c_dbohe","c_kickt"]},quads:{gym:["c_legext","c_hack","c_1lp"],home:["c_goblet","c_stepup"]},glutes:{gym:["c_kickback","c_abduct","c_mthrust"],home:["c_glbridge","c_bandwalk"]},hams:{gym:["c_llc","c_slc"],home:["c_dbrdl","c_slrdl"]}};
 function applyFocus(pg,A){const f=A.focus||"even",F=FOCUS[f]||FOCUS.even,home=A.place==="home",old=S.pe;S.pe={pg};
   const each=fn=>pg.days.forEach(d=>d.ex.forEach(e=>fn(e,d)));
   if(f==="strength"){if(A.exp==="new"){pg.prog="linear"}else delete pg.prog;
