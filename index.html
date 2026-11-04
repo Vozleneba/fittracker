@@ -1895,7 +1895,7 @@ function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
       <input id="fx-n" value="${esc(D.name)}" placeholder="Название" aria-label="Название">
       <div class="fx-g">${[["g","г"],["k","ккал"],["p","Б"],["f","Ж"],["c","У"]].map(([k,l])=>`<label>${l}<input id="fx-${k}" inputmode="decimal" value="${D[k]!=null?Math.round(D[k]):""}" ${k==="g"?'oninput="fxGrams(this.value)"':""}></label>`).join("")}</div>
       ${D.items&&D.items.length?`<div class="rir">${D.items.map(i=>`${esc(i.name)} ~${Math.round(i.grams||0)} г`).join(" · ")}</div>`:""}
-      ${D.src==="barcode"?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
+      ${D.src==="barcode"&&D.per?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
       ${F.editId&&D.g?`<div class="rir">Меняешь граммы — калории и БЖУ пересчитаются сами.</div>`:""}
       <div class="me-row"><button class="btn small" data-act="fxadd">${F.editId?"Сохранить":"Добавить в день"}</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
   return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Всё добавленное входит в итог дня.")}</div>
@@ -1974,7 +1974,7 @@ function mealsCard(sel){
       return `<button class="ml" data-act="meal" data-id="${m.id}" aria-pressed="${!!d}"><span class="ml-ck">${ck}</span>
         <span class="ml-t"><span class="ml-l">${mealLbl(P,mi)}${PIN.has(m.id)?` <i class="pin-ic" title="Каждый день">${PINI}</i>`:""}${d?` · съел в ${d}`:""}</span><b>${esc(m.name)}</b><span class="ml-i">${it}</span></span>
         <span class="ml-k num">${v.k}<small>Б${v.p} Ж${v.f} У${v.c}</small></span></button>`}).join("")}</div>
-    ${extrasBlock(sel)}
+    ${(()=>{try{return extrasBlock(sel)}catch(e){console.error(e);S.fx=null;try{return extrasBlock(sel)}catch(e2){return ""}}})()}
     <div class="me-btns"><button class="btn ghost" data-act="meedit" style="margin:0">${P.length?"Изменить":"+ Приём"}</button><button class="btn ghost" data-act="meyest" style="margin:0">Как вчера</button></div>
     ${goalBlock(sel)}
     ${(()=>{const f=dayDoc(sel).food;return f&&f.kcal&&f.src!=="plan"?`<div class="w-verdict" data-t="up">За день записано ${f.src==="health"?"из FatSecret":"вручную"}: <b>${Math.round(f.kcal).toLocaleString("ru-RU")} ккал</b> · Б ${Math.round(f.p||0)} Ж ${Math.round(f.f||0)} У ${Math.round(f.c||0)}</div>`:""})()}
