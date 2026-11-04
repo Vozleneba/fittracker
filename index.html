@@ -877,6 +877,8 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .h-acts button:active{transform:scale(.96)}
 .fx{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px}
 .fx-it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
+.fx-it{background:color-mix(in srgb,var(--leaf) 13%,var(--g-card,var(--surface-2)));border-color:color-mix(in srgb,var(--leaf) 55%,var(--line))}
+.fx-it .ml-ck{flex:none;background:linear-gradient(160deg,color-mix(in srgb,#fff 25%,var(--leaf)),var(--leaf));border-color:transparent;color:var(--on-leaf);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 12px -4px var(--leaf)}
 .fx-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.fx-t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fx-t span{font-size:11.5px;color:var(--muted)}
 .fx-k{display:flex;flex-direction:column;align-items:flex-end;font-weight:700}.fx-k small{font-size:10.5px;color:var(--muted);font-weight:600}
 .fx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -1882,7 +1884,7 @@ function fxCloud(){return typeof cloudApi==="function"&&typeof tgInitData==="fun
 function recalcFood(doc){const d=doc.date;S.daily[d]=doc;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
   if(auto){const s2=mealSum(d);if(s2.n||s2.x)doc.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete doc.food}return doc}
 function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
-  const list=X.map(x=>F.editId===x.id?"":`<div class="fx-it"><button class="fx-t" data-act="fxedit" data-id="${esc(x.id)}" aria-label="Изменить ${esc(x.name)}"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""} · изменить</span></button><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
+  const list=X.map(x=>F.editId===x.id?"":`<div class="fx-it"><span class="ml-ck" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><button class="fx-t" data-act="fxedit" data-id="${esc(x.id)}" aria-label="Изменить ${esc(x.name)}"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""} · изменить</span></button><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
   let panel="";
   if(F.mode==="err")panel=`<div class="fx-panel"><div class="rir" style="color:#ff5a4e">Не получилось: ${esc(F.msg||"")}</div><button class="link" data-act="fxcancel" style="align-self:flex-start">Закрыть</button></div>`;
   else if(F.mode==="busy")panel=`<div class="fx-busy"><i></i>${esc(F.msg||"Считаю…")}</div>`;
