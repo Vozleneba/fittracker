@@ -877,7 +877,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .h-acts button:active{transform:scale(.96)}
 .fx{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px}
 .fx-it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2))}
-.fx-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.fx-t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fx-t span{font-size:11.5px;color:var(--muted)}
+.fx-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.fx-t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fx-t span{font-size:11.5px;color:var(--muted)}
 .fx-k{display:flex;flex-direction:column;align-items:flex-end;font-weight:700}.fx-k small{font-size:10.5px;color:var(--muted);font-weight:600}
 .fx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .fx-acts button{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 6px;border-radius:14px;border:1px solid var(--g-edge,var(--line));background:var(--g-card,var(--surface-2));color:var(--fg);font:600 13px var(--sans,system-ui);cursor:pointer}
@@ -1882,7 +1882,7 @@ function fxCloud(){return typeof cloudApi==="function"&&typeof tgInitData==="fun
 function recalcFood(doc){const d=doc.date;S.daily[d]=doc;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
   if(auto){const s2=mealSum(d);if(s2.n||s2.x)doc.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete doc.food}return doc}
 function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
-  const list=X.map(x=>`<div class="fx-it"><span class="fx-t"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""}</span></span><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
+  const list=X.map(x=>F.editId===x.id?"":`<div class="fx-it"><button class="fx-t" data-act="fxedit" data-id="${esc(x.id)}" aria-label="Изменить ${esc(x.name)}"><b>${esc(x.name)}</b><span>${x.g?Math.round(x.g)+" г · ":""}${FX_SRC[x.src]||""}${x.t?" · "+x.t:""} · изменить</span></button><span class="fx-k num">${Math.round(x.k)}<small>Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</small></span><button class="me-x" data-act="fxdel" data-id="${esc(x.id)}" aria-label="Убрать">×</button></div>`).join("");
   let panel="";
   if(F.mode==="err")panel=`<div class="fx-panel"><div class="rir" style="color:#ff5a4e">Не получилось: ${esc(F.msg||"")}</div><button class="link" data-act="fxcancel" style="align-self:flex-start">Закрыть</button></div>`;
   else if(F.mode==="busy")panel=`<div class="fx-busy"><i></i>${esc(F.msg||"Считаю…")}</div>`;
@@ -1896,7 +1896,8 @@ function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
       <div class="fx-g">${[["g","г"],["k","ккал"],["p","Б"],["f","Ж"],["c","У"]].map(([k,l])=>`<label>${l}<input id="fx-${k}" inputmode="decimal" value="${D[k]!=null?Math.round(D[k]):""}" ${k==="g"?'oninput="fxGrams(this.value)"':""}></label>`).join("")}</div>
       ${D.items&&D.items.length?`<div class="rir">${D.items.map(i=>`${esc(i.name)} ~${Math.round(i.grams||0)} г`).join(" · ")}</div>`:""}
       ${D.src==="barcode"?`<div class="rir">На 100 г: ${Math.round(D.per.k)} ккал · Б${Math.round(D.per.p)} Ж${Math.round(D.per.f)} У${Math.round(D.per.c)}. Впиши, сколько граммов съел.</div>`:""}
-      <div class="me-row"><button class="btn small" data-act="fxadd">Добавить в день</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
+      ${F.editId&&D.g?`<div class="rir">Меняешь граммы — калории и БЖУ пересчитаются сами.</div>`:""}
+      <div class="me-row"><button class="btn small" data-act="fxadd">${F.editId?"Сохранить":"Добавить в день"}</button><button class="link" data-act="fxcancel">Отмена</button></div></div>`}
   return `<div class="fx"><div class="eyebrow">Вне плана ${qh("Съел что-то не по плану — сфотографируй блюдо, опиши словами или отсканируй штрихкод упаковки. Всё добавленное входит в итог дня.")}</div>
     ${list}
     ${F.mode?panel:`<div class="fx-acts"><button data-act="fxphoto">${FXI.cam}Фото</button><button data-act="fxtext">${FXI.txt}Описать</button><button data-act="fxbc">${FXI.bc}Штрихкод</button></div>`}
@@ -1932,15 +1933,20 @@ function fxHandle(a,b){
   if(a==="fxbc"){$("#fx-bcfile").click();return true}
   if(a==="fxtext"){S.fx={mode:"text",text:""};render();setTimeout(()=>{const t=$("#fx-text");if(t)t.focus()},50);return true}
   if(a==="fxcancel"){S.fx=null;render();return true}
+  if(a==="fxedit"){const x=(dayDoc(S.actDate||today()).extra||[]).find(y=>y.id===b.dataset.id);if(!x)return true;
+    S.fx={mode:"review",editId:x.id,d:{src:x.src,name:x.name,g:x.g||null,k:x.k,p:x.p,f:x.f,c:x.c,per:x.per,base:x.g>0?{g:x.g,k:x.k,p:x.p,f:x.f,c:x.c}:null}};render();
+    setTimeout(()=>{const el=$("#fx-g");if(el){el.scrollIntoView({block:"center",behavior:"smooth"})}},50);return true}
   if(a==="fxsend"){const t=($("#fx-text").value||"").trim();if(t.length<3){toast("Опиши, что съел");return true}
     if(!fxCloud()){toast("Оценка по описанию работает в Telegram-версии");return true}
     fxRun(async()=>{const j=await cloudApi("food",{text:t});fxAiDraft(j,"text")},"Считаю…");return true}
   if(a==="fxcode"){const c=($("#fx-code").value||"").replace(/\D/g,"");if(c.length<8){toast("Нужно 8–14 цифр");return true}fxRun(()=>fxLookup(c),"Ищу продукт…");return true}
   if(a==="fxadd"){const num=k=>{const v=parseFloat(String($("#fx-"+k).value).replace(",","."));return v>0?v:0};
     const x={id:Date.now().toString(36),name:($("#fx-n").value||"Еда").trim().slice(0,80),g:num("g"),k:num("k"),p:num("p"),f:num("f"),c:num("c"),src:S.fx.d.src,t:new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})};
+    if(S.fx.d.per)x.per=S.fx.d.per;
     if(!x.k){toast("Впиши калории");return true}
-    const d=S.actDate||today(),doc={...dayDoc(d)};doc.extra=[...(doc.extra||[]),x];recalcFood(doc);S.fx=null;
-    saveDay(doc).then(()=>{render();toast(`Добавлено: ${Math.round(x.k)} ккал`)});return true}
+    const d=S.actDate||today(),doc={...dayDoc(d)},eid=S.fx.editId;
+    if(eid){doc.extra=(doc.extra||[]).map(y=>y.id===eid?{...y,...x,id:y.id,t:y.t}:y)}else doc.extra=[...(doc.extra||[]),x];recalcFood(doc);S.fx=null;
+    saveDay(doc).then(()=>{render();toast(eid?`Сохранено: ${Math.round(x.k)} ккал`:`Добавлено: ${Math.round(x.k)} ккал`)});return true}
   if(a==="fxdel"){const d=S.actDate||today(),doc={...dayDoc(d)};doc.extra=(doc.extra||[]).filter(x=>x.id!==b.dataset.id);if(!doc.extra.length)delete doc.extra;recalcFood(doc);saveDay(doc).then(render);return true}
   return false}
 function goalNums(d){const T=foodTarget(d),mid=v=>Array.isArray(v)?Math.round((v[0]+v[1])/2):Math.round(+v||0);return {k:mid(T.kcal),p:mid(T.p),f:mid(T.f),c:mid(T.c),w:T.w}}
