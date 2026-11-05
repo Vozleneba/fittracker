@@ -930,6 +930,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 .pr-days{display:flex;gap:6px;flex-wrap:wrap}.pr-days span{font-size:11.5px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--leaf) 10%,transparent);color:var(--fg)}
 .pr-card .btn{align-self:flex-start}
 .ob-q{display:flex;flex-direction:column;gap:10px}.ob-ch{flex-wrap:wrap;overflow:visible}.ob-ch button{padding:9px 14px;font-size:13.5px;white-space:normal;max-width:100%;text-align:left;line-height:1.3}
+.nc-orm{width:64px;padding:3px 6px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2,transparent);color:inherit;font:inherit;text-align:center}
 .ob-flash{outline:2px solid var(--leaf);outline-offset:2px;transition:outline .3s}.ob-cons{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.4;padding:4px 2px}.ob-cons input{width:20px;height:20px;flex:none;accent-color:var(--leaf)}
 .ob-res{display:flex;flex-direction:column;gap:10px;border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))}.ob-p{font-size:20px}.ob-res p{margin:0;font-size:13px;color:var(--muted)}
 .ob-k{display:flex;flex-direction:column;gap:2px}.ob-k b{font-size:22px;color:var(--leaf)}.ob-k span{font-size:12.5px;color:var(--muted)}
@@ -958,7 +959,7 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 <script>
 // ===== Волновой цикл 11.10–13.11.2026 (из PDF). Кортеж недели: [подходы, повт. от, повт. до, кг]
 let CYCLE={n:2,start:"2026-10-11",end:"2026-11-13"};
-const B=[[3,12,15],[3,8,10],[4,5,6],[4,3,5],[2,10,10]];   // база
+const B=[[3,10,12],[3,8,10],[4,5,6],[4,3,5],[2,10,10]];   // база: не больше 12 повторов
 const I=[[3,15,15],[3,15,15],[3,12,12],[3,12,12],[2,15,15]]; // изоляция
 const mk=(pat,kgs)=>pat.map((p,i)=>[...p,kgs[i]]);
 const E=(id,name,inc,type,kgs,o={})=>({id,name,inc,type,w:mk(type==="base"?B:I,kgs),...o});
@@ -982,7 +983,7 @@ const PLAN={
  legs:{title:"Legs",sub:"Квадрицепс · ягодицы · бицепс бедра",dow:3,ex:[
   E("legext","Leg Extension",5,"iso",[75,80,85,85,50]),
   E("belt","Belt Squats",2.5,"base",[90,100,117.5,125,65],{orm:140,warm:w=>w>=3&&w<=4?"Разминка: 50 → 70 → 90 → 105 → рабочий.":"Разминка: 50 → 70 → рабочий."}),
-  E("bridge","Ягодичный мост",5,"base",[160,185,215,230,120],{orm:255,note:"Лопатки на скамье, подбородок прижат, вверх до линии плечо–таз–колено, без переразгибания поясницы."}),
+  E("bridge","Ягодичный мост",5,"base",[160,185,215,230,120],{orm:255,max:220,w:mk([[3,10,12],[3,8,10],[4,8,12],[4,8,12],[2,10,10]],[160,185,215,230,120]),note:"В тренажёр больше 220 не влезает — дальше прибавляй повторы (до 12) и делай паузу 2 с наверху. Лопатки на скамье, подбородок прижат, вверх до линии плечо–таз–колено, без переразгибания поясницы."}),
   E("slpress","Single Leg Press",5,"base",[75,85,100,105,55]),
   E("legcurl","Seated Leg Curl",2.5,"iso",[60,62.5,65,65,40]),
   E("abduct","Hip Abduction",5,"iso",[45,45,50,50,30]),
@@ -1004,8 +1005,8 @@ const exRest=(ex,week)=>(ex.rest&&ex.rest[week])||restFor(week,ex.type);
 const SEQ=["push","pull","legs","arms"];
 const TITLES={push:"Push",pull:"Pull",legs:"Legs",legsA:"Legs A",legsB:"Legs B",arms:"Arms"};
 const WEEKS=[null,
- {name:"Объём",dates:"11–16 окт",base:"3×12–15",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:63,rest:"1,5–2 мин",kcal:"2500"},
- {name:"Гипертрофия",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:72,rest:"2 мин",kcal:"2500"},
+ {name:"Объём",dates:"11–16 окт",base:"3×10–12",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:67,rest:"1,5–2 мин",kcal:"2500"},
+ {name:"Гипертрофия",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:74,rest:"2 мин",kcal:"2500"},
  {name:"Сила",dates:"25–30 окт",base:"4×5–6",iso:"3×12",rir:"RIR 1",rirT:1,pct:84,rest:"3 мин",kcal:"2500"},
  {name:"Пик",dates:"1–6 ноя",base:"4×3–5",iso:"3×12",rir:"RIR 0–1",rirT:.5,pct:89,rest:"3–4 мин",kcal:"2500"},
  {name:"Разгрузка",dates:"8–13 ноя",base:"2×10",iso:"2×15",rir:"RIR 3–4",rirT:3.5,pct:45,rest:"1,5 мин",kcal:"2900–3000"}];
@@ -1535,7 +1536,7 @@ async function parseReady(){
 }
 
 // ===== Расчёт следующего цикла
-const PCTS=[.63,.72,.84,.89,.45];
+const PCTS=[.67,.74,.84,.89,.45]; // 10–12 повт. ≈ 67%, 8–10 ≈ 74% от 1ПМ — запас 2–4 повтора
 function impliedOrm(ex){if(ex.orm)return ex.orm;const v=[0,1,2,3].map(i=>ex.w[i][3]/PCTS[i]).filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
 function cycleSessions(){return S.sessions.filter(s=>isWave(s)&&(s.cycle||2)===CYCLE.n&&s.week<=4)}
 function measuredOrm(id){let best=null;
@@ -1558,6 +1559,7 @@ function computeNext(){
         const o=impliedOrm(ex),m=measuredOrm(ex.id);
         let n=o,src="нет данных за цикл — 1ПМ без изменений";
         if(m){n=Math.min(o*1.075,Math.max(o*.9,m.v));src=`по ${fmt(m.kg)}×${m.reps}${m.rir?` + RIR ${m.rir}`:""} (${dm(m.date)})${m.v>o*1.075?" · рост ограничен +7,5% за цикл":""}`}
+        const ov=S.ncOrm&&+S.ncOrm[ex.id];if(ov>0){n=ov;src="вписано вручную"}
         n=Math.round(n*2)/2;orm[ex.id]=n;
         kgs[d][ex.id]=PCTS.map(p=>{const st=ex.stack||Math.min(ex.inc,2.5);const k=Math.max(st,roundTo(n*p,st));return ex.max?Math.min(ex.max,k):k});
         rows[d].push({ex,old,nw:kgs[d][ex.id],o:Math.round(o*2)/2,n,src,t:n>o+.4?"up":n<o-.4?"down":"flat"});
@@ -1565,8 +1567,10 @@ function computeNext(){
         const v=isoVerdict(d,ex);let nw=old.slice(),src;
         if(ex.id==="pullup"){const s=cycleSessions().find(s=>s.day==="pull"&&s.week===2),e=s&&s.exercises.find(x=>x.id==="pullup");
           const up=e&&Math.min(...e.sets.map(x=>x.reps))>=8&&(e.rir==null||e.rir>=2);if(up)nw[1]=old[1]+2.5;src=e?(up?"неделя 2 выполнена — +2,5 кг доп. веса":"неделя 2 не закрыта — доп. вес прежний"):"нет данных — без изменений";}
-        else if(v.up){nw=old.map(k=>k==null?k:k+ex.inc);src=`${v.ok} из ${v.n} недель по плану — +${fmt(ex.inc)} кг`}
-        else src=v.n?(v.fail?`${v.fail} из ${v.n} недель не дотягивал — вес прежний`:`${v.ok} из ${v.n} недель по плану — закрепляем вес`):"нет данных — без изменений";
+        else if(v.up||!v.fail){const act=[1,2,3,4].map(wk=>{const s=cycleSessions().find(s=>s.day===d&&s.week===wk),e=s&&(s.exercises||[]).find(x=>x.id===ex.id);return e?Math.max(0,...e.sets.map(x=>+x.kg||0)):0});
+          const add=v.up?ex.inc:0;nw=old.map((k,i)=>k==null?k:Math.max(ex.inc,roundTo(Math.max(k,i<4?act[i]:0)+add,ex.inc)));
+          src=v.up?`${v.ok} из ${v.n} недель по плану — +${fmt(ex.inc)} кг к тому, что поднимал`:v.n?`${v.ok} из ${v.n} недель по плану — закрепляем вес`:"нет данных — без изменений"}
+        else src=`${v.fail} из ${v.n} недель не дотягивал — вес прежний`;
         kgs[d][ex.id]=nw;rows[d].push({ex,old,nw,src,t:nw.some((k,i)=>k!==old[i])?"up":"flat",iso:true});
       }
     }}
@@ -1579,7 +1583,7 @@ function vNext(){
     <div class="ncw">${r.nw.map((k,i)=>`<span>${k==null?(i===2?"тест":"+5–7,5"):r.ex.bw&&!k?"СВ":fmt(k)}<em>Н${i+1}</em></span>`).join("")}</div>
     <div class="src">${esc(r.src)}</div></div>`).join("")}</div></div>`}).join("");
   const base=SEQ.flatMap(d=>N.rows[d].filter(r=>!r.iso));
-  const top=`<section class="card"><div class="eyebrow" style="margin-bottom:10px">Максимум на 1 раз (1ПМ) — тяжёлые упражнения</div><div class="nc-top">${base.map(r=>`<span>${esc(r.ex.name)}</span><b style="color:${r.t==="up"?"var(--up)":r.t==="down"?"var(--hold)":"var(--muted)"}">${fmt(r.o)} → ${fmt(r.n)}</b>`).join("")}</div></section>`;
+  const top=`<section class="card"><div class="eyebrow" style="margin-bottom:10px">Максимум на 1 раз (1ПМ) — тяжёлые упражнения ${qh("Трекер поднимает 1ПМ не больше чем на 7,5% за цикл — так надёжнее.\nЕсли на пиковой неделе ты сделал заметно больше плана, можешь вписать своё число — веса недель пересчитаются.")}</div><div class="nc-top">${base.map(r=>`<span>${esc(r.ex.name)}</span><b style="color:${r.t==="up"?"var(--up)":r.t==="down"?"var(--hold)":"var(--muted)"}">${fmt(r.o)} → <input class="nc-orm" inputmode="decimal" value="${fmt(r.n)}" data-in="ncorm" data-id="${r.ex.id}" aria-label="Новый 1ПМ: ${esc(r.ex.name)}"></b>`).join("")}</div></section>`;
   return `
   <section class="wk-hero nc-hero">
     <div class="wk-head"><button class="back" data-act="tab" data-v="home" aria-label="Назад">←</button>
@@ -1597,7 +1601,7 @@ function vNext(){
 async function launchNext(){
   const N=computeNext(),start=S.nextStart||nextSunday(addDays(CYCLE.end,1));
   const doc={n:CYCLE.n+1,start,kgs:N.kgs,orm:N.orm,createdAt:Date.now(),prev:CYCLE_DOC?JSON.parse(JSON.stringify({...CYCLE_DOC,prev:null})):null};
-  await saveCycleDoc(doc);S.confirmNext=false;S.view="home";S.nextStart=null;render();window.scrollTo(0,0);toast(`Цикл ${doc.n} запущен с ${dm(start)}`);
+  await saveCycleDoc(doc);S.confirmNext=false;S.ncOrm=null;S.view="home";S.nextStart=null;render();window.scrollTo(0,0);toast(`Цикл ${doc.n} запущен с ${dm(start)}`);
 }
 async function saveCycleDoc(doc){
   try{ if(S.store==="db"){ doc?await S.db.doc("meta/cycle").set(doc):await S.db.doc("meta/cycle").delete(); } else { doc?ls.set("meso-cycle",doc):ls.del("meso-cycle"); }
@@ -3250,6 +3254,7 @@ function onIn(ev){
   if(k==="hkg"||k==="hreps"){if(S.edit)S.edit.doc.exercises[+t.dataset.x].sets[+t.dataset.y][k==="hkg"?"kg":"reps"]=t.value.trim();return}
   if(k==="hdate"){if(S.edit&&t.value)S.edit.doc.date=t.value;return}
   if(k==="sthandle"){ls.set("meso-handle",t.value.trim());if(ev.type==="change")renderStory();return}
+  if(k==="ncorm"){const v=parseFloat(String(t.value).replace(",","."));S.ncOrm=S.ncOrm||{};if(v>0)S.ncOrm[t.dataset.id]=v;else delete S.ncOrm[t.dataset.id];if(ev.type==="change")render();return}
   if(k==="ncstart"){S.nextStart=t.value||null;if(ev.type==="change")render();return}
   if(!S.draft)return;
   if(k==="date")S.draft.date=t.value||today();
