@@ -1953,7 +1953,7 @@ function mealEditor(){const E=S.mEdit,FD=allFoods(),T=planVal(E.plan),O=planVal(
   </div>`}
 // ===== Еда вне плана: фото / описание / штрихкод
 const FX_SRC={photo:"фото · оценка ИИ",text:"описание · оценка ИИ",barcode:"штрихкод · этикетка",manual:"вручную"};
-function fxCloud(){return typeof cloudApi==="function"&&typeof tgInitData==="function"&&!!tgInitData()}
+function fxCloud(){return typeof cloudApi==="function"&&typeof cloudOn==="function"&&cloudOn()}
 function recalcFood(doc){const d=doc.date;S.daily[d]=doc;const auto=!doc.food||!doc.food.kcal||doc.food.src==="plan";
   if(auto){const s2=mealSum(d);if(s2.n||s2.x)doc.food={kcal:s2.k,p:s2.p,f:s2.f,c:s2.c,src:"plan"};else delete doc.food}return doc}
 function extrasBlock(sel){const X=dayDoc(sel).extra||[],F=S.fx||{};
@@ -2122,7 +2122,7 @@ function vActivity(){
     </ol>
     <div class="row-in" style="margin-top:10px"><input id="hk-url" readonly value="${esc(tgStepsUrl())}" aria-label="Шаблон ссылки"><button class="btn small" data-act="hkcopy">Копировать</button></div>
     <p class="foot" style="margin-top:8px">Ссылка личная — не публикуй её. Повторный запуск в тот же день просто обновит число, меньшее значение не перезапишет большее.</p>
-  </div></div>${tgReadKeyCard()}${tgWipeCard()}`;
+  </div></div>${tgLoginCard()}${tgReadKeyCard()}${tgWipeCard()}`;
 }
 
 // ===== Карточка для сторис (canvas 1080×1920)
@@ -2862,7 +2862,8 @@ function cycleDial(pos,vw){
       <text x="332" y="${y}" text-anchor="end" class="dial-c" style="${cur?`fill:${C(w)}`:""}">${cnt[w]}/${ND}</text></g>`});
   return `<div class="cdial"><svg viewBox="0 0 340 168" width="100%" role="img" aria-label="Циферблат цикла: ${done} из ${TOT} тренировок"><defs><linearGradient id="dialSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dee5"/><stop offset=".5" stop-color="#7d858f"/><stop offset="1" stop-color="#3a4048"/></linearGradient></defs>${s}</svg></div>`;
 }
-function vHome(pos){
+function vHome(pos){return (typeof loginGate==="function"?loginGate():"")+vHome0(pos)}
+function vHome0(pos){
   if(S.store==="loading") return `<div class="empty">Загружаю твои тренировки…</div>`;
   const d=PLAN[pos.day],t=today(),vw=S.hw||pos.week,W=WEEKS[vw];
   const plates=Array.from({length:NW},(_,i)=>i+1).map(w=>`<button class="plate" data-act="hweek" data-w="${w}" aria-pressed="${w===vw}" aria-label="Неделя ${w}" data-cur="${w===vw?1:0}" data-done="${w<pos.week&&w!==vw?1:0}" data-now="${w===pos.week?1:0}" style="--c:${wc(w)}"><span class="disc" style="height:${Math.round((WEEKS[w].pct-30)*1.1+18)}px"></span><small>Н${w} · ${WEEKS[w].pct}%</small></button>`).join("");
@@ -3185,6 +3186,11 @@ document.addEventListener("click",ev=>{
     if(a==="stset"){const v=parseInt($("#st-in").value,10);if(!(v>=0)){toast("Впиши число шагов");return}doc.steps=v}else doc.steps=(doc.steps||0)+ +b.dataset.n;
     saveDay(doc).then(()=>{render();if(doc.steps>=goal())toast("Норма шагов закрыта")})}
   else if(a==="tgwipe"){S.confirmDel=null;tgWipe()}
+  else if(a==="lkcopy"){const v=$("#lk-key").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ключ скопирован"),()=>{$("#lk-key").select();toast("Выдели и скопируй вручную")})}catch(e){$("#lk-key").select()}}
+  else if(a==="lkreset"){S.confirmDel=null;cloudApi("loginkeyreset").then(j=>{S.loginKeyVal=j.key;render();toast("Новый ключ готов — старый больше не работает")}).catch(e=>toast("Не получилось: "+(e&&e.message||e)))}
+  else if(a==="lkin"){const v=String(($("#lk-in")||{}).value||"").trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(v)){toast("Это не похоже на ключ — скопируй его целиком");return}setLoginKey(v);S.loginBad=0;toast("Подключаю…");setTimeout(()=>location.reload(),300)}
+  else if(a==="lkout"){setLoginKey("");toast("Вышел — дальше данные только на этом устройстве");setTimeout(()=>location.reload(),600)}
+  else if(a==="lkskip"){S.noCloud=1;render()}
   else if(a==="rkcopy"){const v=$("#rk-key").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ключ скопирован"),()=>{$("#rk-key").select();toast("Выдели и скопируй вручную")})}catch(e){$("#rk-key").select()}}
   else if(a==="hkcopy"){const v=$("#hk-url").value;try{navigator.clipboard.writeText(v).then(()=>toast("Ссылка скопирована"),()=>{$("#hk-url").select();toast("Выдели и скопируй вручную")})}catch(e){$("#hk-url").select()}}
   else if(a==="wsave"){const d=S.actDate||today(),v=parseFloat(String($("#w-in").value).replace(",","."));
@@ -3389,12 +3395,20 @@ window.addEventListener("hashchange",()=>{try{S.hashSeen=location.hash||"";S.pen
 // ===== Облако FitTracker (Supabase через Edge Function). Тот же интерфейс, что и db в Claude.
 const API_URL="https://gysvorlatszlzapquvak.supabase.co/functions/v1/api";
 function tgInitData(){try{return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData)||""}catch(e){return ""}}
+// Вход вне Telegram (файл, браузер на компьютере): личный ключ из Telegram → «Тело» → «Вход с компьютера»
+const LK="ft-login-key";
+function loginKey(){try{return localStorage.getItem(LK)||""}catch(e){return ""}}
+function setLoginKey(k){try{k?localStorage.setItem(LK,k):localStorage.removeItem(LK)}catch(e){}}
+const cloudOn=()=>!!(tgInitData()||loginKey());
 async function cloudApi(op,body={}){
-  const r=await fetch(API_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({initData:tgInitData(),op,...body})});
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+  const tg=tgInitData(),auth=tg?{initData:tg}:{key:loginKey()};
+  const r=await fetch(API_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({...auth,op,...body})});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===401&&!tg&&loginKey()){setLoginKey("");S.loginBad=1;throw new Error("ключ не подошёл — возможно, его сменили в Telegram")}
+  if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
 }
 async function makeCloudDb(){
-  if(!tgInitData())return null;
+  if(!cloudOn())return null;
   const store={},L={coll:{},doc:{}};
   const fill=docs=>{for(const k in store)delete store[k];(docs||[]).forEach(d=>{(store[d.coll]=store[d.coll]||{})[d.id]=d.data})};
   fill((await cloudApi("all")).docs);
@@ -3418,22 +3432,47 @@ async function makeCloudDb(){
 // Личная ссылка для «Быстрых команд» (шаги из «Здоровья» → облако)
 function tgStepsUrl(){
   if(S.stepsUrl) return S.stepsUrl;
-  if(!S._skReq&&tgInitData()){S._skReq=1;cloudApi("stepskey").then(j=>{if(j&&j.key){S.stepsUrl=API_URL+"?k="+j.key+"&steps=ШАГИ&date=ДАТА";render()}else S._skReq=0}).catch(()=>{S._skReq=0})}
+  if(!S._skReq&&cloudOn()){S._skReq=1;cloudApi("stepskey").then(j=>{if(j&&j.key){S.stepsUrl=API_URL+"?k="+j.key+"&steps=ШАГИ&date=ДАТА";render()}else S._skReq=0}).catch(()=>{S._skReq=0})}
   return "загружаю ключ…";
 }
 
 // Ключ «только для чтения» — для разбора тренировок в Claude
 function tgReadKey(){
   if(S.readKey) return S.readKey;
-  if(!S._rkReq&&tgInitData()){S._rkReq=1;cloudApi("readkey").then(j=>{if(j&&j.key){S.readKey=j.key;render()}else S._rkReq=0}).catch(()=>{S._rkReq=0})}
+  if(!S._rkReq&&cloudOn()){S._rkReq=1;cloudApi("readkey").then(j=>{if(j&&j.key){S.readKey=j.key;render()}else S._rkReq=0}).catch(()=>{S._rkReq=0})}
   return "загружаю ключ…";
 }
 function tgReadKeyCard(){
-  if(!tgInitData()) return "";
+  if(!cloudOn()) return "";
   return `<div class="card pos dt" data-open="${S.dt.rk?1:0}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="rk">Доступ для Claude (только чтение)</div><div class="dt-body">
     <div class="row-in" style="margin-top:12px"><input id="rk-key" readonly value="${esc(tgReadKey())}" aria-label="Ключ чтения"><button class="btn small" data-act="rkcopy">Копировать</button></div>
     <p class="foot" style="margin-top:8px">Вставь ключ в чат с Claude — он сможет сам смотреть тренировки, вес и шаги. Изменить или удалить данные по этому ключу нельзя.</p>
   </div></div>`;
+}
+
+// Ключ входа: в Telegram — показать/скопировать/сменить; вне Telegram — статус и «Выйти»
+function tgLoginKey(){
+  if(S.loginKeyVal) return S.loginKeyVal;
+  if(!S._lkReq&&tgInitData()){S._lkReq=1;cloudApi("loginkey").then(j=>{if(j&&j.key){S.loginKeyVal=j.key;render()}else S._lkReq=0}).catch(()=>{S._lkReq=0})}
+  return "загружаю ключ…";
+}
+function tgLoginCard(){
+  if(tgInitData()) return `<div class="card pos dt" data-open="${S.dt.lk?1:0}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="lk">Вход с компьютера</div><div class="dt-body">
+    <p class="foot" style="margin-top:10px">Открой трекер на компьютере (сайт или файл) и вставь этот ключ — данные будут общими с Telegram.</p>
+    <div class="row-in" style="margin-top:10px"><input id="lk-key" readonly value="${esc(tgLoginKey())}" aria-label="Ключ входа"><button class="btn small" data-act="lkcopy">Копировать</button></div>
+    <p class="foot" style="margin-top:8px">Ключ = пароль: с ним можно смотреть и менять твои данные. Никому не пересылай.</p>
+    ${S.confirmDel==="__lk"?confirmBox("Сменить ключ?","Старый ключ перестанет работать — на компьютере нужно будет войти заново.",`data-act="lkreset"`,"Сменить",true)
+      :`<button class="btn small ghost" data-act="askdel" data-id="__lk" style="align-self:flex-start;margin-top:8px">Сменить ключ</button>`}
+  </div></div>`;
+  if(loginKey()) return `<div class="card pos"><div class="eyebrow">Облако</div><p class="foot" style="margin-top:6px">${S.cloudErr?"Нет связи: "+esc(S.cloudErr):"Подключено по ключу — данные общие с Telegram."}</p><button class="btn small ghost" data-act="lkout" style="align-self:flex-start;margin-top:8px">Выйти на этом устройстве</button></div>`;
+  return "";
+}
+function loginGate(){
+  if(tgInitData()||loginKey()||S.noCloud) return "";
+  return `<section class="card" style="border-color:color-mix(in srgb,var(--leaf) 50%,var(--line))"><div class="eyebrow">Подключить облако</div>
+    <p class="foot" style="margin-top:6px">${S.loginBad?"Ключ не подошёл — возможно, его сменили. ":""}Чтобы видеть и вносить те же данные, что в Telegram: открой бота → «Тело» → «Вход с компьютера», скопируй ключ и вставь сюда.</p>
+    <div class="row-in" style="margin-top:10px"><input id="lk-in" placeholder="Вставь ключ" autocomplete="off" aria-label="Ключ входа"><button class="btn small" data-act="lkin">Войти</button></div>
+    <button class="link" data-act="lkskip" style="align-self:flex-start;margin-top:6px">Работать без облака</button></section>`;
 }
 
 // Удаление всех данных пользователя (GDPR)
