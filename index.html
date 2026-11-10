@@ -959,8 +959,29 @@ button.plate[data-now="1"] small::after{content:" •";color:var(--wk)}
 <script>
 // ===== Волновой цикл 11.10–13.11.2026 (из PDF). Кортеж недели: [подходы, повт. от, повт. до, кг]
 let CYCLE={n:2,start:"2026-10-11",end:"2026-11-13"};
-const B=[[3,10,12],[3,8,10],[4,5,6],[4,3,5],[2,10,10]];   // база: не больше 12 повторов
-const I=[[3,15,15],[3,15,15],[3,12,12],[3,12,12],[2,15,15]]; // изоляция
+// Шаблоны цикла: 5 недель (циклы 1–2) и 6 недель (с цикла 3: 5 рабочих + разгрузка). База — не больше 12 повторов
+const TPL={
+ 5:{B:[[3,10,12],[3,8,10],[4,5,6],[4,3,5],[2,10,10]],I:[[3,15,15],[3,15,15],[3,12,12],[3,12,12],[2,15,15]],
+    P:[.67,.74,.84,.89,.45],R:{1:[2,3],2:[2,2],3:[1,1],4:[0,1],5:[3,4]},W:[null,
+ {name:"Объём",dates:"",base:"3×10–12",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:67,rest:"1,5–2 мин",kcal:"2500"},
+ {name:"Гипертрофия",dates:"",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:74,rest:"2 мин",kcal:"2500"},
+ {name:"Сила",dates:"",base:"4×5–6",iso:"3×12",rir:"RIR 1",rirT:1,pct:84,rest:"3 мин",kcal:"2500"},
+ {name:"Пик",dates:"",base:"4×3–5",iso:"3×12",rir:"RIR 0–1",rirT:.5,pct:89,rest:"3–4 мин",kcal:"2500"},
+ {name:"Разгрузка",dates:"",base:"2×10",iso:"2×15",rir:"RIR 3–4",rirT:3.5,pct:45,rest:"1,5 мин",kcal:"2900–3000"}]},
+ 6:{B:[[3,10,12],[3,8,10],[4,6,8],[4,4,6],[3,4,6],[2,6,8]],BK:[[3,10,12],[3,8,10],[4,6,8],[4,4,6],[3,2,4],[2,6,8]],
+    I:[[3,10,15],[3,10,15],[3,10,15],[3,10,15],[3,10,15],[2,10,12]],
+    P:[.70,.75,.80,.85,.87,.60],PK:[.70,.75,.80,.85,.90,.60],R:{1:[2,2],2:[2,2],3:[1,2],4:[1,1],5:[0,1],6:[3,4]},W:[null,
+ {name:"Объём",dates:"",base:"3×10–12",iso:"3×10–15",rir:"RIR 2",rirT:2,pct:70,rest:"2 мин",kcal:"2500"},
+ {name:"Гипертрофия",dates:"",base:"3×8–10",iso:"3×10–15",rir:"RIR 2",rirT:2,pct:75,rest:"2 мин",kcal:"2500"},
+ {name:"Сила",dates:"",base:"4×6–8",iso:"3×10–15",rir:"RIR 1–2",rirT:1.5,pct:80,rest:"2–3 мин",kcal:"2500"},
+ {name:"Сила+",dates:"",base:"4×4–6",iso:"3×10–15",rir:"RIR 1",rirT:1,pct:85,rest:"3 мин",kcal:"2500"},
+ {name:"Пик",dates:"",base:"3×4–6 · жим и присед 3×2–4",iso:"3×10–15",rir:"RIR 0–1",rirT:.5,pct:87,rest:"3–4 мин",kcal:"2500"},
+ {name:"Разгрузка",dates:"",base:"2×6–8",iso:"2×10–12",rir:"RIR 3–4",rirT:3.5,pct:60,rest:"2 мин",kcal:"2900–3000"}]}};
+let NW=5,DLW=5,B=TPL[5].B,I=TPL[5].I,PCTS=TPL[5].P,RIRB=TPL[5].R,WEEKS=TPL[5].W;
+function setTpl(n){const T=TPL[n]||TPL[5];NW=DLW=TPL[n]?n:5;B=T.B;I=T.I;PCTS=T.P;RIRB=T.R;WEEKS=T.W}
+const tplOf=s=>TPL[s&&s.nw]||TPL[5];
+const heavyW=w=>w>=3&&w<DLW;
+const wci=w=>w>=DLW?5:Math.min(4,Math.max(1,w||1));
 const mk=(pat,kgs)=>pat.map((p,i)=>[...p,kgs[i]]);
 const E=(id,name,inc,type,kgs,o={})=>({id,name,inc,type,w:mk(type==="base"?B:I,kgs),...o});
 const PLAN={
@@ -1004,12 +1025,7 @@ for(const d in PLAN)for(const ex of PLAN[d].ex)if(ex.heavy)for(const w in ex.hea
 const exRest=(ex,week)=>(ex.rest&&ex.rest[week])||restFor(week,ex.type);
 const SEQ=["push","pull","legs","arms"];
 const TITLES={push:"Push",pull:"Pull",legs:"Legs",legsA:"Legs A",legsB:"Legs B",arms:"Arms"};
-const WEEKS=[null,
- {name:"Объём",dates:"11–16 окт",base:"3×10–12",iso:"3×15",rir:"RIR 2–3",rirT:2.5,pct:67,rest:"1,5–2 мин",kcal:"2500"},
- {name:"Гипертрофия",dates:"18–23 окт",base:"3×8–10",iso:"3×15",rir:"RIR 2",rirT:2,pct:74,rest:"2 мин",kcal:"2500"},
- {name:"Сила",dates:"25–30 окт",base:"4×5–6",iso:"3×12",rir:"RIR 1",rirT:1,pct:84,rest:"3 мин",kcal:"2500"},
- {name:"Пик",dates:"1–6 ноя",base:"4×3–5",iso:"3×12",rir:"RIR 0–1",rirT:.5,pct:89,rest:"3–4 мин",kcal:"2500"},
- {name:"Разгрузка",dates:"8–13 ноя",base:"2×10",iso:"2×15",rir:"RIR 3–4",rirT:3.5,pct:45,rest:"1,5 мин",kcal:"2900–3000"}];
+
 const DOW=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
 // Снимок весов цикла 2 из PDF — от него считается и к нему откатывается
 const BASE_KG={},BASE_ORM={};
@@ -1023,27 +1039,80 @@ function progFromPlan(){return {v:1,kind:"wave",days:SEQ.map(k=>{const D=PLAN[k]
     for(const f of ["bw","stack","max","note","rest"])if(e[f]!=null)o[f]=e[f];if(BASE_ORM[e.id])o.orm=BASE_ORM[e.id];
     if(typeof e.warm==="function")o.warm={h:e.warm(3),l:e.warm(1)};return o})}})}}
 const DEF_PROGRAM=JSON.parse(JSON.stringify(progFromPlan()));
-function exFromData(o){const e={...o,w:o.w.map(w=>[...w])};if(o.warm&&typeof o.warm==="object"){const W=o.warm;e.warm=wk=>wk>=3&&wk<=4?W.h:W.l}return e}
+// ===== Цикл 3 (15.11–24.12.2026): 6 недель. Изоляция 10–15, база ≤12, разгрузка ~60% 1ПМ
+function c3kgs(ex,orm){if(ex.fixed)return ex.fixed.slice();const st=ex.stack||Math.min(ex.inc,2.5),P=ex.pk?TPL[6].PK:TPL[6].P;
+  return P.map((p,i)=>{const k=Math.max(st,roundTo(orm*p*(i<5?(ex.pf||1):1),st));return ex.max?Math.min(ex.max,k):k})}
+function c3ex(id,name,inc,type,kgs,o={}){const pat=o.pat||(type==="base"?(o.pk?TPL[6].BK:TPL[6].B):TPL[6].I);const e={id,name,inc,type,...o};delete e.pat;
+  const k=kgs||c3kgs(e,o.orm);e.w=pat.map((q,i)=>[q[0],q[1],q[2],k[i]]);return e}
+function buildProg3(){const X=c3ex,iso5=(a,dl)=>[a,a,a,a,a,dl];return {v:1,kind:"wave",nw:6,days:[
+ {key:"push",title:"Push",sub:"Грудь · плечи · трицепс",dow:0,ex:[
+  X("bench","Жим лёжа со штангой",2.5,"base",null,{orm:117,pk:1,warm:{l:"Разминка: гриф × 10 → 50 × 5 → рабочий.",h:"Разминка: гриф → 50×5 → 70×3 → 85×2 → рабочий."},note:"1ПМ ~117 — оценка. Неделя 1 — подбор: если на первом подходе запас больше 4 повторов, сразу +5 кг."}),
+  X("smith","Smith Incline Chest Press",2.5,"base",null,{orm:95,pf:.95,warm:{l:"Один подводящий: ~60% рабочего × 3.",h:"Один подводящий: ~60% рабочего × 3."},note:"Идёт вторым после жима лёжа — веса чуть ниже процента."}),
+  X("cablefly","Chest Fly",5,"iso",[45,45,50,50,50,45]),
+  X("hilofly","Cable Chest Fly",2.5,"iso",iso5(30,23)),
+  X("lat","DB Lateral Raise",2.5,"iso",iso5(15,12.5)),
+  X("ohext","Overhead Triceps Ext.",2.5,"iso",iso5(30,23)),
+  X("pushdown","Tricep Pushdown",2.5,"iso",iso5(30,23))]},
+ {key:"pull",title:"Pull",sub:"Спина · задняя дельта · бицепс",dow:1,ex:[
+  X("latpd","Тяга верхнего блока",2.5,"base",null,{orm:120,note:"Вместо подтягиваний. 1ПМ ~120 — оценка: неделя 1 — подбор, запас больше 4 повторов — сразу +5 кг."}),
+  X("cablerow","Seated Cable Rows",5,"base",[90,95,100,100,100,60],{fixed:[90,95,100,100,100,60],stack:5,max:100,pat:[[3,10,12],[3,8,10],[4,6,8],[4,6,8],[3,8,15],[2,6,8]],note:"Упёрлась в 100. С недели 3 — пауза 2 с в сокращении, растут повторы; неделя 4 — на повтор больше, чем в неделе 3; неделя 5 — на максимум."}),
+  X("tbar","T-Bar Row (упор в грудь)",2.5,"base",null,{orm:76}),
+  X("pullover","Cable Pullover",5,"iso",[64,64,70,70,70,57]),
+  X("reardelt","Rear Deltoid Machine",5,"iso",[50,50,55,55,55,45]),
+  X("curl","Biceps Curls",2.5,"iso",[35,35,37.5,37.5,37.5,30],{note:"Корпус неподвижен — если раскачиваешься, вес велик."}),
+  X("hammer","Hammer Curls",2.5,"iso",[17.5,17.5,20,20,20,15],{note:"Локоть прижат, без раскачки."})]},
+ {key:"legs",title:"Legs",sub:"Квадрицепс · ягодицы · бицепс бедра",dow:3,ex:[
+  X("legext","Leg Extension",5,"iso",[85,85,90,90,90,80]),
+  X("belt","Belt Squats",2.5,"base",null,{orm:175,pk:1,warm:{l:"Разминка: 60 → 90 → рабочий.",h:"Разминка: 60 → 90 → 115 → 135 → рабочий."}}),
+  X("bridge","Ягодичный мост",5,"base",[200,210,220,220,220,180],{fixed:[200,210,220,220,220,180],max:220,pat:[[3,10,12],[3,8,10],[4,8,10],[4,6,8],[3,8,15],[2,8,10]],note:"Вес упёрся в 220. Неделя 3 — 4×8; с недели 4 — пауза 2 с наверху, неделя 5 — на максимум повторов. Лопатки на скамье, подбородок прижат, без переразгибания поясницы."}),
+  X("slpress","Single Leg Press",5,"base",null,{orm:135}),
+  X("legcurl","Seated Leg Curl",2.5,"iso",[70,70,75,75,75,65]),
+  X("abduct","Hip Abduction",5,"iso",[50,50,55,55,55,45]),
+  {id:"hyper",name:"Гиперэкстензия 45°",inc:2.5,type:"iso",bw:true,w:[[2,12,15,5],[2,12,15,5],[2,12,15,7.5],[2,12,15,7.5],[2,12,15,7.5],[2,12,15,0]]},
+  X("calf","Подъём на носки в жиме ногами",5,"iso",[160,160,170,170,170,150])]},
+ {key:"arms",title:"Arms",sub:"Плечи · бицепс · трицепс",dow:4,ex:[
+  X("dbpress","DB Shoulder Press",2.5,"base",null,{orm:46,warm:{l:"Разминка: 15 → 25 → рабочий. Без страховки.",h:"Разминка: 15 → 25 → 32,5 → рабочий. Без страховки."},note:"Полная амплитуда."}),
+  X("uprow","Протяжка широким хватом",5,"iso",iso5(40,35),{note:"Хват в 1,5–2 раза шире плеч, тянуть локтями до уровня плеч — не выше. Без рывка корпусом."}),
+  X("lat","DB Lateral Raise",2.5,"iso",iso5(15,12.5)),
+  X("facepull","Cable Face Pull",5,"iso",iso5(50,43)),
+  X("inclcurl","Incline DB Curl",2.5,"iso",iso5(15,12.5)),
+  X("skull","Skull Crushers",5,"iso",iso5(40,35)),
+  X("bayes","One Hand Cable Curl",2.5,"iso",iso5(23,18)),
+  X("sapush","One Arm Cable Push",2.5,"iso",iso5(23,18))]}]}}
+let DEF_PROGRAM3=null;const defProg3=()=>DEF_PROGRAM3||(DEF_PROGRAM3=JSON.parse(JSON.stringify(buildProg3())));
+// Запуск цикла 3 из цикла 2 (стандартная программа) — по плану цикла 3, 1ПМ можно поправить
+const useC3=()=>CYCLE.n===2&&NW===5&&!(S.settings&&S.settings.program);
+function computeNext3(){const P=defProg3(),kgs={},orm={},rows={};
+  for(const D of P.days){kgs[D.key]={};rows[D.key]=[];const cur=PLAN[D.key]?PLAN[D.key].ex:[];
+    for(const ex of D.ex){const was=cur.find(x=>x.id===ex.id),old=was?was.w.map(w=>w[3]):[];
+      if(ex.type==="base"&&!ex.fixed){const ov=S.ncOrm&&+S.ncOrm[ex.id],n=Math.round((ov>0?ov:ex.orm)*2)/2,o=was?Math.round(impliedOrm(was)*2)/2:n;
+        orm[ex.id]=n;kgs[D.key][ex.id]=c3kgs(ex,n);
+        rows[D.key].push({ex,old,nw:kgs[D.key][ex.id],o,n,src:ov>0?"вписано вручную":was?"план цикла 3":"новое упражнение — 1ПМ по оценке, уточни на неделе 1",t:n>o+.4?"up":n<o-.4?"down":"flat"})}
+      else{const nw=ex.w.map(w=>w[3]);kgs[D.key][ex.id]=nw;rows[D.key].push({ex,old,nw,src:ex.fixed?"упёрлось в стек — прогресс повторами и паузой":was?"план цикла 3":"новое упражнение",t:old.length&&nw.slice(0,4).some((k,i)=>k>(old[i]||0))?"up":"flat",iso:true})}}}
+  return {kgs,orm,rows,nw:6,P}}
+
+function exFromData(o){const e={...o,w:o.w.map(w=>[...w])};if(o.warm&&typeof o.warm==="object"){const W=o.warm;e.warm=wk=>heavyW(wk)?W.h:W.l}return e}
 let PROG_SIG="";
-function loadProgram(pg){pg=pg&&pg.days&&pg.days.length?pg:DEF_PROGRAM;const sig=JSON.stringify(pg);if(sig===PROG_SIG)return false;PROG_SIG=sig;PROG_MODE=pg.prog||"wave";
+function loadProgram(pg){pg=pg&&pg.days&&pg.days.length?pg:(NW===6?defProg3():DEF_PROGRAM);const sig=JSON.stringify(pg);if(sig===PROG_SIG)return false;PROG_SIG=sig;PROG_MODE=pg.prog||"wave";
   for(const k of Object.keys(PLAN))delete PLAN[k];SEQ.length=0;
   for(const D of pg.days){PLAN[D.key]={title:D.title,sub:D.sub||"",dow:D.dow,ex:D.ex.map(exFromData)};SEQ.push(D.key);TITLES[D.key]=D.title;if(typeof SHORT!=="undefined")SHORT[D.key]=D.title}
   snapBase();applyCycle(CYCLE_DOC);return true}
 let CYCLE_DOC=null;
 function applyCycle(doc){
   CYCLE_DOC=doc&&doc.n?doc:null;
-  const c=CYCLE_DOC||{n:2,start:"2026-10-11"};
-  CYCLE={n:c.n,start:c.start,end:addDays(c.start,33)};
+  const c=CYCLE_DOC||{n:2,start:"2026-10-11"},nw=c.nw===6?6:5;
+  CYCLE={n:c.n,start:c.start,end:addDays(c.start,(nw-1)*7+5)};
+  if(nw!==NW){setTpl(nw);if(!(S.settings&&S.settings.program)){PROG_SIG="";loadProgram(null);return}}
   for(const d of SEQ)for(const ex of PLAN[d].ex){
     const k=(CYCLE_DOC&&CYCLE_DOC.kgs&&CYCLE_DOC.kgs[d]&&CYCLE_DOC.kgs[d][ex.id])||BASE_KG[d][ex.id];
-    ex.w.forEach((w,i)=>w[3]=ex.stack&&k[i]!=null?Math.round((k[i]+.001)/ex.stack)*ex.stack:k[i]);
+    if(!k)continue;ex.w.forEach((w,i)=>w[3]=ex.stack&&k[i]!=null?Math.round((k[i]+.001)/ex.stack)*ex.stack:k[i]);
     const o=CYCLE_DOC&&CYCLE_DOC.orm&&CYCLE_DOC.orm[ex.id];if(o)ex.orm=o;else if(BASE_ORM[ex.id])ex.orm=BASE_ORM[ex.id];else delete ex.orm;
   }
 }
 const MON3=["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
 function weekDates(w){const a=addDays(CYCLE.start,(w-1)*7),b=addDays(a,5);const ma=+a.slice(5,7)-1,mb=+b.slice(5,7)-1;
   return ma===mb?`${+a.slice(8,10)}–${+b.slice(8,10)} ${MON3[mb]}`:`${+a.slice(8,10)} ${MON3[ma]} – ${+b.slice(8,10)} ${MON3[mb]}`}
-const wc=w=>`var(--w${Math.min(5,Math.max(1,w||1))})`;
+const wc=w=>`var(--w${wci(w)})`;
 
 const S={dt:{},view:"home",sessions:[],override:null,draft:null,store:"loading",db:null,confirmDel:null,daily:{},settings:null,ready:null};
 const $=s=>document.querySelector(s);
@@ -1066,22 +1135,22 @@ function showTip(b){hideTip();b.setAttribute("data-on","1");const box=$("#tipbox
 function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
 function sortS(){S.sessions.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0))}
 const isWave=s=>s.program==="wave";
-const isDeload=s=>isWave(s)?s.week===5:s.week===4;
+const isDeload=s=>isWave(s)?s.week===(s.nw||5):s.week===4;
 
 // ===== Календарь цикла: Вс Push · Пн Pull · Ср Ноги · Чт Руки
 const slotDate=(week,day)=>addDays(CYCLE.start,(week-1)*7+PLAN[day].dow);
-const weekOf=d=>Math.min(5,Math.max(1,Math.floor((new Date(d+"T12:00:00")-new Date(CYCLE.start+"T12:00:00"))/864e5/7)+1));
+const weekOf=d=>Math.min(NW,Math.max(1,Math.floor((new Date(d+"T12:00:00")-new Date(CYCLE.start+"T12:00:00"))/864e5/7)+1));
 const logged=(week,day)=>S.sessions.find(s=>isWave(s)&&(s.cycle||2)===CYCLE.n&&s.week===week&&s.day===day);
 function position(){
   if(S.override&&S.override.day) return S.override;
   const t=today();
-  for(let w=weekOf(t);w<=5;w++) for(const d of SEQ){ if(!logged(w,d)&&slotDate(w,d)>=t) return {day:d,week:w}; }
-  for(let w=5;w>=1;w--) for(const d of SEQ){ if(!logged(w,d)) return {day:d,week:w}; }
-  return {day:"push",week:5,done:true};
+  for(let w=weekOf(t);w<=NW;w++) for(const d of SEQ){ if(!logged(w,d)&&slotDate(w,d)>=t) return {day:d,week:w}; }
+  for(let w=NW;w>=1;w--) for(const d of SEQ){ if(!logged(w,d)) return {day:d,week:w}; }
+  return {day:SEQ[0],week:NW,done:true};
 }
 
 // ===== Рекомендации: план + авторегуляция по RIR + поясница
-function lastInCycle(id){for(const s of S.sessions){if(!isWave(s)||(s.cycle||2)!==CYCLE.n||s.week>4)continue;const e=(s.exercises||[]).find(x=>x.id===id);if(e&&e.sets&&e.sets.length)return {s,e}}return null}
+function lastInCycle(id){for(const s of S.sessions){if(!isWave(s)||(s.cycle||2)!==CYCLE.n||s.week>=DLW)continue;const e=(s.exercises||[]).find(x=>x.id===id);if(e&&e.sets&&e.sets.length)return {s,e}}return null}
 function lastFor(id,{skipDeload=true,waveOnly=false}={}){
   for(const s of S.sessions){ if(skipDeload&&isDeload(s))continue; if(waveOnly&&!isWave(s))continue;
     const e=(s.exercises||[]).find(x=>x.id===id); if(e&&e.sets&&e.sets.length) return {s,e}; }
@@ -1097,7 +1166,7 @@ const PROG_NAMES={wave:"Волна",double:"Двойная",linear:"Линейн
 function hist(id,n){const out=[];for(const s of S.sessions){if(isDeload(s))continue;const e=(s.exercises||[]).find(x=>x.id===id);if(e&&e.sets&&e.sets.some(x=>+x.reps>0)){out.push({s,e});if(out.length>=n)break}}return out}
 function progRec(ex,week,r,mode){
   const [sets,lo,hi,planKg]=ex.w[week-1],inc=ex.inc||2.5,H=hist(r.id,2),L=H[0],rng=lo===hi?lo:lo+"–"+hi;
-  if(week===5){const b=L?topKg(L.e):planKg;r.kg=b?Math.max(0,roundTo(b*.6,inc)):b;r.reps=hi;r.main={t:"deload",text:`Лёгкая неделя: ${sets}×${rng} · ~60% веса`};return}
+  if(week===DLW){const b=L?topKg(L.e):planKg;r.kg=b?Math.max(0,roundTo(b*.6,inc)):b;r.reps=hi;r.main={t:"deload",text:`Лёгкая неделя: ${sets}×${rng} · ~60% веса`};return}
   if(!L){r.kg=planKg;r.reps=hi;r.main={t:"plan",text:`Старт: ${sets}×${rng}${planKg?` · ${fmt(planKg)} кг`:" · подбери вес"}`};
     r.hints.push({t:"plan",text:`Сделаешь ${mode==="double"?hi:lo} повторов во всех подходах — в следующий раз +${fmt(inc)} кг`});return}
   const top=topKg(L.e),atTop=L.e.sets.filter(x=>+x.kg===top),tgt=mode==="double"?hi:lo,ok=atTop.length>=sets&&atTop.every(x=>(+x.reps||0)>=tgt);
@@ -1110,8 +1179,8 @@ function progRec(ex,week,r,mode){
   const mr=Math.min(...atTop.map(x=>+x.reps||0));r.hints.push({t:"plan",text:mode==="double"?`Тот же вес — постарайся сделать ${hi} повторов во всех подходах`:`Тот же вес — постарайся сделать ${lo} повторов во всех подходах`})}
 function rec(ex,week){
   const [sets,lo,hi,planKg]=ex.w[week-1];
-  const W=WEEKS[week],r={kg:planKg,reps:hi,name:ex.name,id:ex.id,hints:[]};
-  r.main={t:week===5?"deload":"plan",text:`План: ${sets}×${lo===hi?lo:lo+"–"+hi}${ex.orm&&!ex.bw?` · ${W.pct}% от максимума ${fmt(ex.orm)} кг`:""}`};
+  const W=WEEKS[week],r={kg:planKg,reps:hi,name:ex.name,id:ex.id,hints:[]},pc=ex.orm&&planKg?Math.round(planKg/ex.orm*100):W.pct;
+  r.main={t:week===DLW?"deload":"plan",text:`План: ${sets}×${lo===hi?lo:lo+"–"+hi}${ex.orm&&!ex.bw&&!ex.fixed?` · ${pc}% от максимума ${fmt(ex.orm)} кг`:""}`};
   if(ex.id==="pullup"&&(week===3||week===4)){
     r.id="vrow";r.name="Вертикальная тяга (тренажёр)";
     const L3=S.sessions.find(s=>isWave(s)&&s.week===3&&(s.exercises||[]).some(e=>e.id==="vrow"));
@@ -1124,8 +1193,8 @@ function rec(ex,week){
   if(mode!=="wave")progRec(ex,week,r,mode);
   // ===== Автоподстройка под твои логи этого цикла
   const L=mode==="wave"?lastInCycle(r.id):null;
-  if(L&&week!==5&&!(ex.bw&&r.id===ex.id)&&planKg){
-    const e=L.e,lw=L.s.week,[ra,rb]=RIRB[lw],tgtR=(ra+rb)/2,work=e.sets.filter(x=>+x.kg>0);
+  if(L&&week!==DLW&&!(ex.bw&&r.id===ex.id)&&planKg){
+    const e=L.e,lw=L.s.week,[ra,rb]=tplOf(L.s).R[lw]||RIRB[lw],tgtR=(ra+rb)/2,work=e.sets.filter(x=>+x.kg>0);
     if(work.length){
       let nk=planKg,why="";
       if(ex.type==="base"){
@@ -1155,7 +1224,7 @@ function rec(ex,week){
     if(tr>hi2){r.reps=tr;r.main={t:"up",text:`Стек ${ex.max} кг — максимум: прогресс повторами`};r.hints.push({t:"plan",text:`Цель ${Math.max(lo2,tr-1)}–${tr} повт. вместо ${lo2}–${hi2}${want>ex.max?` (по расчёту было бы ${fmt(want)} кг)`:""}. Можно ещё негатив 3 с и пауза в сокращении.`});}
     else if(want>ex.max)r.hints.push({t:"plan",text:`По расчёту ${fmt(want)} кг, но стек ${ex.max} — работаем с максимумом.`});
   }
-  if(ex.id==="bridge"){const b=lastBack();if(b&&b.back>3&&week!==5){r.kg=roundTo(r.kg*.9,ex.inc);r.hints.push({t:"warn",text:`Поясница ${b.back}/10 в прошлый четверг → мост −10%: ${fmt(r.kg)} кг`});}}
+  if(ex.id==="bridge"){const b=lastBack();if(b&&b.back>3&&week!==DLW){r.kg=roundTo(r.kg*.9,ex.inc);r.hints.push({t:"warn",text:`Поясница ${b.back}/10 в прошлый четверг → мост −10%: ${fmt(r.kg)} кг`});}}
   return r;
 }
 const kgLabel=(bw,kg)=>bw?(+kg?`+${fmt(+kg)}`:"СВ"):fmt(+kg);
@@ -1206,7 +1275,7 @@ const plural=(n,a,b,c)=>{n=Math.abs(n)%100;const m=n%10;return n>10&&n<20?c:m===
 // ===== Календарь
 const MONTHS=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
 const SHORT={push:"Push",pull:"Pull",legs:"Legs",legsA:"Legs A",legsB:"Legs B",arms:"Arms"};
-function plannedMap(){const m={};for(let w=1;w<=5;w++)for(const d of SEQ)m[slotDate(w,d)]={day:d,week:w};return m}
+function plannedMap(){const m={};for(let w=1;w<=NW;w++)for(const d of SEQ)m[slotDate(w,d)]={day:d,week:w};return m}
 function planPreview(day,week){
   const W=WEEKS[week],rb=restFor(week,"base"),ri=restFor(week,"iso");
   const rows=PLAN[day].ex.map(ex=>{const r=rec(ex,week),[n,lo,hi]=ex.w[week-1],bw=ex.bw&&r.id===ex.id;
@@ -1297,10 +1366,12 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.draft&&
 const WU_PDF={smith:{lo:[[20,10],[40,6]],hi:[[20,8],[40,6],[55,4],[65,2]]},belt:{lo:[[50,10],[70,6]],hi:[[50,8],[70,6],[90,4],[105,2]]},dbpress:{lo:[[12.5,10]],hi:[[12.5,8],[20,6],[27.5,4]]}};
 const WU_ROLE={smith:"full",chestpress:"feeder",pullup:"full",cablerow:"feeder",tbar:"feeder",legext:"light",belt:"full",bridge:"full",slpress:"feeder",dbpress:"full"};
 const WU_PCT={full:{lo:[[.5,8],[.75,4]],hi:[[.4,8],[.6,5],[.75,3],[.88,1]],dl:[[.5,8]]},feeder:{lo:[[.7,4]],hi:[[.6,4],[.8,2]],dl:[]},light:{lo:[[.5,12]],hi:[[.5,12]],dl:[]}};
+const WU_PDF6={bench:{lo:[[20,10],[50,5]],hi:[[20,8],[50,5],[70,3],[85,2]]},belt:{lo:[[60,8],[90,4]],hi:[[60,8],[90,5],[115,3],[135,2]]},dbpress:{lo:[[15,8],[25,4]],hi:[[15,8],[25,5],[32.5,3]]}};
+const WU_ROLE6={bench:"full",smith:"feeder",latpd:"full",cablerow:"feeder",tbar:"feeder",legext:"light",belt:"full",bridge:"full",slpress:"feeder",dbpress:"full"};
 function warmupFor(ex,week,kg,id){
-  const role=WU_ROLE[ex.id]||(ex.type==="base"&&!ex.bw?"full":null);if(!role)return [];
-  const ph=week===5?"dl":week>=3?"hi":"lo";
-  if(WU_PDF[ex.id]&&ph!=="dl"&&id===ex.id)return WU_PDF[ex.id][ph].map(([k,r])=>({kg:k,reps:r,done:false}));
+  const role=(NW===6?WU_ROLE6:WU_ROLE)[ex.id]||(ex.type==="base"&&!ex.bw?"full":null);if(!role)return [];
+  const ph=week===DLW?"dl":week>=3?"hi":"lo",WP=NW===6?WU_PDF6:WU_PDF;
+  if(WP[ex.id]&&ph!=="dl"&&id===ex.id)return WP[ex.id][ph].map(([k,r])=>({kg:k,reps:r,done:false}));
   if(ex.bw&&id===ex.id){ if(ph==="dl")return []; return kg?[{kg:0,reps:5,done:false},{kg:roundTo(kg/2,ex.inc),reps:3,done:false}]:[{kg:0,reps:5,done:false}]; }
   if(kg==null||!kg)return [];
   const out=[];for(const [p,r] of WU_PCT[role][ph]){const k=Math.max(ex.inc,roundTo(kg*p,ex.inc));if(k<kg&&(!out.length||k>out[out.length-1].kg))out.push({kg:k,reps:r,done:false})}
@@ -1364,7 +1435,6 @@ function swapEx(ei,key){
 // ===== Подсказка на следующий подход (авторегуляция по RIR)
 // Повторы до отказа ≈ повторы + RIR → расчётный 1ПМ (Эпли) → вес под целевые повторы и RIR,
 // с запасом в 1 повтор на накопленную усталость. Шаг не больше ±15% за раз.
-const RIRB={1:[2,3],2:[2,2],3:[1,1],4:[0,1],5:[3,4]};
 const rng=(a,b)=>a===b?`${a}`:`${a}–${b}`;
 function advise(D,ei){
   const e=D.ex[ei],ex=PLAN[D.day].ex.find(x=>x.id===e.pid);
@@ -1372,7 +1442,7 @@ function advise(D,ei){
   if(!done.length)return null;
   const s=done[done.length-1],[,lo,hi]=ex.w[D.week-1],[a,b]=RIRB[D.week];
   const kg=+String(s.kg).replace(",",".")||0,r=+s.reps||0,q=s.rir===""||s.rir==null?null:+s.rir;
-  const bw=ex.bw&&e.id===ex.id,inc=e.inc||ex.inc,deload=D.week===5,isLast=s.i>=e.sets.length-1;
+  const bw=ex.bw&&e.id===ex.id,inc=e.inc||ex.inc,deload=D.week===DLW,isLast=s.i>=e.sets.length-1;
   const K=v=>bw?(v?`+${fmt(v)} кг`:"свой вес"):`${fmt(v)} кг`;
   const tR=lo==null?null:Math.round((lo+hi)/2),rt=(a+b)/2;
   if(lo==null) return {t:"ok",title:"Тест",text:`Записано ${r} повт. Оставь ${K(kg)} и делай, пока получается чисто.`,kg,isLast};
@@ -1451,7 +1521,7 @@ const slotOf=d=>String(d||"").startsWith("legs")?"legs":d;
 function prevSame(s){return S.sessions.find(x=>x.id!==s.id&&x.day===s.day&&x.date<s.date)||S.sessions.find(x=>x.id!==s.id&&slotOf(x.day)===slotOf(s.day)&&x.date<s.date)}
 function restEval(v,target){if(v==null)return "";const d=v-target;return d>30?`<em data-t="hi">дольше плана (${fmtT(target)})</em>`:d<-30?`<em data-t="hi">короче плана (${fmtT(target)})</em>`:`<em data-t="ok">в плане (${fmtT(target)})</em>`}
 function summaryText(s){
-  const st=statsOf(s),p=prevSame(s),W=isWave(s)?WEEKS[s.week]:null,pt=p?statsOf(p).tonnage:0;
+  const st=statsOf(s),p=prevSame(s),W=isWave(s)?tplOf(s).W[s.week]:null,pt=p?statsOf(p).tonnage:0;
   const L=[`${TITLES[s.day]||s.day} · неделя ${s.week}${W?" ("+W.name+")":""} · ${dm(s.date)}`,
     `Поднято ${st.tonnage.toLocaleString("ru-RU")} кг${pt?` (${st.tonnage>=pt?"+":""}${Math.round((st.tonnage/pt-1)*100)}% к прошлой)`:""}`,
     `Подходов ${st.sets} · повторов ${st.reps}${st.durationMin?` · ${st.durationMin} мин`:""}`];
@@ -1462,7 +1532,7 @@ function summaryText(s){
 function vSummary(){
   const s=S.sessions.find(x=>x.id===S.summaryId)||S.summaryDoc;
   if(!s)return `<div class="empty">Тренировка не найдена.</div>`;
-  const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0,W=isWave(s)?WEEKS[s.week]:null;
+  const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0,W=isWave(s)?tplOf(s).W[s.week]:null;
   const dl=pt?Math.round((st.tonnage/pt-1)*100):null;
   const rows=(s.exercises||[]).map(e=>{const t=e.sets.reduce((a,x)=>a+(+x.kg||0)*(+x.reps||0),0);
     return `<tr><td>${esc(e.name)}<div class="sub num">${setsText(e)}</div></td><td class="r num">${t?Math.round(t).toLocaleString("ru-RU"):"—"}</td></tr>`}).join("");
@@ -1536,9 +1606,8 @@ async function parseReady(){
 }
 
 // ===== Расчёт следующего цикла
-const PCTS=[.67,.74,.84,.89,.45]; // 10–12 повт. ≈ 67%, 8–10 ≈ 74% от 1ПМ — запас 2–4 повтора
-function impliedOrm(ex){if(ex.orm)return ex.orm;const v=[0,1,2,3].map(i=>ex.w[i][3]/PCTS[i]).filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
-function cycleSessions(){return S.sessions.filter(s=>isWave(s)&&(s.cycle||2)===CYCLE.n&&s.week<=4)}
+function impliedOrm(ex){if(ex.orm)return ex.orm;const v=Array.from({length:DLW-1},(_,i)=>i).map(i=>ex.w[i][3]/PCTS[i]).filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+function cycleSessions(){return S.sessions.filter(s=>isWave(s)&&(s.cycle||2)===CYCLE.n&&s.week<DLW)}
 function measuredOrm(id){let best=null;
   for(const s of cycleSessions()){const e=(s.exercises||[]).find(x=>x.id===id);if(!e)continue;
     const all=e.sets.filter(x=>+x.kg>0),pool=all.some(x=>x.reps<=12)?all.filter(x=>x.reps<=12):all;
@@ -1567,8 +1636,8 @@ function computeNext(){
         const v=isoVerdict(d,ex);let nw=old.slice(),src;
         if(ex.id==="pullup"){const s=cycleSessions().find(s=>s.day==="pull"&&s.week===2),e=s&&s.exercises.find(x=>x.id==="pullup");
           const up=e&&Math.min(...e.sets.map(x=>x.reps))>=8&&(e.rir==null||e.rir>=2);if(up)nw[1]=old[1]+2.5;src=e?(up?"неделя 2 выполнена — +2,5 кг доп. веса":"неделя 2 не закрыта — доп. вес прежний"):"нет данных — без изменений";}
-        else if(v.up||!v.fail){const act=[1,2,3,4].map(wk=>{const s=cycleSessions().find(s=>s.day===d&&s.week===wk),e=s&&(s.exercises||[]).find(x=>x.id===ex.id);return e?Math.max(0,...e.sets.map(x=>+x.kg||0)):0});
-          const add=v.up?ex.inc:0;nw=old.map((k,i)=>k==null?k:Math.max(ex.inc,roundTo(Math.max(k,i<4?act[i]:0)+add,ex.inc)));
+        else if(v.up||!v.fail){const act=Array.from({length:DLW-1},(_,i)=>i+1).map(wk=>{const s=cycleSessions().find(s=>s.day===d&&s.week===wk),e=s&&(s.exercises||[]).find(x=>x.id===ex.id);return e?Math.max(0,...e.sets.map(x=>+x.kg||0)):0});
+          const add=v.up?ex.inc:0;nw=old.map((k,i)=>k==null?k:Math.max(ex.inc,roundTo(Math.max(k,i<DLW-1?act[i]:0)+add,ex.inc)));
           src=v.up?`${v.ok} из ${v.n} недель по плану — +${fmt(ex.inc)} кг к тому, что поднимал`:v.n?`${v.ok} из ${v.n} недель по плану — закрепляем вес`:"нет данных — без изменений"}
         else src=`${v.fail} из ${v.n} недель не дотягивал — вес прежний`;
         kgs[d][ex.id]=nw;rows[d].push({ex,old,nw,src,t:nw.some((k,i)=>k!==old[i])?"up":"flat",iso:true});
@@ -1576,11 +1645,11 @@ function computeNext(){
     }}
   return {kgs,orm,rows}}
 function vNext(){
-  const N=computeNext(),start=S.nextStart||nextSunday(addDays(CYCLE.end,1)),done=today()>CYCLE.end;
+  const N=useC3()?computeNext3():computeNext(),start=S.nextStart||nextSunday(addDays(CYCLE.end,1)),done=today()>CYCLE.end;
   const logged=cycleSessions().length;
   const days=SEQ.map(d=>{const up=N.rows[d].filter(r=>r.t==="up").length;return `<div class="card nc-day dt" data-open="${S.dt["nc-"+d]?1:0}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="nc-${d}"><h3>${PLAN[d].title}</h3><span class="nc-meta">${up?`↑ ${up} из ${N.rows[d].length}`:"без изменений"}</span></div><div class="dt-body">${N.rows[d].map(r=>`
     <div class="nc-row"><div class="t"><span>${esc(r.ex.name)}</span><span class="d" data-t="${r.t}">${r.iso?(r.t==="up"?"↑ вес":"= вес"):`1ПМ ${fmt(r.o)} → ${fmt(r.n)} (${r.n>=r.o?"+":""}${fmt(Math.round((r.n/r.o-1)*1000)/10)}%)`}</span></div>
-    <div class="ncw">${r.nw.map((k,i)=>`<span>${k==null?(i===2?"тест":"+5–7,5"):r.ex.bw&&!k?"СВ":fmt(k)}<em>Н${i+1}</em></span>`).join("")}</div>
+    <div class="ncw" style="grid-template-columns:repeat(${r.nw.length},1fr)">${r.nw.map((k,i)=>`<span>${k==null?(i===2?"тест":"+5–7,5"):r.ex.bw&&!k?"СВ":fmt(k)}<em>Н${i+1}</em></span>`).join("")}</div>
     <div class="src">${esc(r.src)}</div></div>`).join("")}</div></div>`}).join("");
   const base=SEQ.flatMap(d=>N.rows[d].filter(r=>!r.iso));
   const top=`<section class="card"><div class="eyebrow" style="margin-bottom:10px">Максимум на 1 раз (1ПМ) — тяжёлые упражнения ${qh("Трекер поднимает 1ПМ не больше чем на 7,5% за цикл — так надёжнее.\nЕсли на пиковой неделе ты сделал заметно больше плана, можешь вписать своё число — веса недель пересчитаются.")}</div><div class="nc-top">${base.map(r=>`<span>${esc(r.ex.name)}</span><b style="color:${r.t==="up"?"var(--up)":r.t==="down"?"var(--hold)":"var(--muted)"}">${fmt(r.o)} → <input class="nc-orm" inputmode="decimal" value="${fmt(r.n)}" data-in="ncorm" data-id="${r.ex.id}" aria-label="Новый 1ПМ: ${esc(r.ex.name)}"></b>`).join("")}</div></section>`;
@@ -1590,7 +1659,7 @@ function vNext(){
       <div><div class="eyebrow">Цикл ${CYCLE.n} → ${CYCLE.n+1}</div><h2 style="margin-top:4px">Следующий цикл ${qh("Трекер смотрит, какие веса и повторы ты делал в этом цикле, и считает новые веса на следующий.\n\nБазовые упражнения: стал сильнее — веса вырастут, но не больше чем на 7,5%, чтобы не перегрузиться.\n\nОстальные: справлялся с планом — прибавка, нет — тот же вес.")}</h2></div></div>
     <div class="date-row"><label for="nc-start">Старт (воскресенье)</label><input id="nc-start" type="date" value="${start}" data-in="ncstart"></div>
   </section>
-  ${!done?`<div class="nc-info">Цикл ${CYCLE.n} ещё идёт · расчёт по ${logged} из ${SEQ.length*4} тренировок ${qh("Цикл "+CYCLE.n+" идёт до "+dm(CYCLE.end)+". Расчёт уточняется с каждой тренировкой и станет точным к концу 4-й недели.")}</div>`:""}
+  ${!done?`<div class="nc-info">Цикл ${CYCLE.n} ещё идёт · расчёт по ${logged} из ${SEQ.length*(DLW-1)} тренировок ${qh("Цикл "+CYCLE.n+" идёт до "+dm(CYCLE.end)+". Расчёт уточняется с каждой тренировкой и станет точным к концу 4-й недели.")}</div>`:""}
   ${top}
   ${days}
 
@@ -1599,8 +1668,8 @@ function vNext(){
   ${CYCLE_DOC&&!S.sessions.some(s=>(s.cycle||2)===CYCLE.n)?`<button class="link" data-act="ncrevert" style="align-self:center">Отменить запуск цикла ${CYCLE.n} (вернуть предыдущий)</button>`:""}`;
 }
 async function launchNext(){
-  const N=computeNext(),start=S.nextStart||nextSunday(addDays(CYCLE.end,1));
-  const doc={n:CYCLE.n+1,start,kgs:N.kgs,orm:N.orm,createdAt:Date.now(),prev:CYCLE_DOC?JSON.parse(JSON.stringify({...CYCLE_DOC,prev:null})):null};
+  const N=useC3()?computeNext3():computeNext(),start=S.nextStart||nextSunday(addDays(CYCLE.end,1));
+  const doc={n:CYCLE.n+1,start,kgs:N.kgs,orm:N.orm,...(N.nw?{nw:N.nw}:{}),createdAt:Date.now(),prev:CYCLE_DOC?JSON.parse(JSON.stringify({...CYCLE_DOC,prev:null})):null};
   await saveCycleDoc(doc);S.confirmNext=false;S.ncOrm=null;S.view="home";S.nextStart=null;render();window.scrollTo(0,0);toast(`Цикл ${doc.n} запущен с ${dm(start)}`);
 }
 async function saveCycleDoc(doc){
@@ -1689,8 +1758,8 @@ function weightCard(sel){
 }
 // ===== Питание: цель недели, дневной лог, средние, расчётная поддержка
 function foodTarget(d){const w=d>=CYCLE.start&&d<=CYCLE.end?weekOf(d):1,ct=S.settings&&S.settings.foodTarget;
-  if(ct){const c=[Math.max(0,ct.c-15),ct.c+15];return w===5?{kcal:[ct.kcal+400,ct.kcal+500],p:ct.p,f:ct.f,c:[ct.c+100,ct.c+125],w,custom:1}:{kcal:[ct.kcal,ct.kcal],p:ct.p,f:ct.f,c,w,custom:1}}
-  return w===5?{kcal:[2900,3000],p:180,f:80,c:[350,390],w}:{kcal:[2500,2500],p:180,f:80,c:[250,300],w}}
+  if(ct){const c=[Math.max(0,ct.c-15),ct.c+15];return w===DLW?{kcal:[ct.kcal+400,ct.kcal+500],p:ct.p,f:ct.f,c:[ct.c+100,ct.c+125],w,custom:1}:{kcal:[ct.kcal,ct.kcal],p:ct.p,f:ct.f,c,w,custom:1}}
+  return w===DLW?{kcal:[2900,3000],p:180,f:80,c:[350,390],w}:{kcal:[2500,2500],p:180,f:80,c:[250,300],w}}
 // ===== Калькулятор нормы калорий и БЖУ
 const GOALS={cut:"Сбросить жир",recomp:"Рекомпозиция",keep:"Поддерживать",gain:"Набрать мышцы"};
 function calcDefaults(){const p=(S.settings&&S.settings.profile)||{},w=wStats(),t=today();
@@ -1847,7 +1916,7 @@ const planVal=(P,dl)=>P.reduce((a,m)=>{const v=mealVal(m,dl);for(const x in a)a[
 const mealLbl=(P,i)=>P[i].extra?"Дополнительно":`Приём ${P.slice(0,i+1).filter(m=>!m.extra).length}`;
 function itemText(it,dl){const F=allFoods()[it.p];if(!F)return "";const q=qn(it.q);if(!q)return F.s;
   const add=dl&&it.dl,v=q+(add?it.dl:0),u=F.u||"г",t=`${F.s} ${String(v).replace(".",",")} ${u}`;return add?`<em>${t}</em>`:t}
-function mealSum(sel){const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s={k:0,p:0,f:0,c:0,n:0};
+function mealSum(sel){const dl=foodTarget(sel).w===DLW,dn=dayDoc(sel).meals||{},s={k:0,p:0,f:0,c:0,n:0};
   getPlan(sel).forEach(m=>{if(dn[m.id]){const v=mealVal(m,dl);s.k+=v.k;s.p+=v.p;s.f+=v.f;s.c+=v.c;s.n++}});
   s.x=0;for(const x of dayDoc(sel).extra||[]){s.k+=Math.round(+x.k||0);s.p+=Math.round(+x.p||0);s.f+=Math.round(+x.f||0);s.c+=Math.round(+x.c||0);s.x++}return s}
 const dsg=v=>{v=Math.round(v);return v>0?"+"+v:v<0?"−"+Math.abs(v):"0"};
@@ -1966,7 +2035,7 @@ function goalBlock(sel){const ct=S.settings&&S.settings.foodTarget,G=goalNums(se
 const PINI='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 16v5"/></svg>';
 async function saveSettings(){return S.store==="db"?S.db.doc("meta/settings").set(S.settings):ls.set("meso-settings",S.settings)}
 function mealsCard(sel){
-  const dl=foodTarget(sel).w===5,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(sel),G=goalNums(sel),PIN=pinnedIds();
+  const dl=foodTarget(sel).w===DLW,dn=dayDoc(sel).meals||{},s=mealSum(sel),P=getPlan(sel),G=goalNums(sel),PIN=pinnedIds();
   const ck='<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   return `<section class="card ml-card dt" data-open="${S.dt.meals?1:0}">
     <div class="dt-sum ml-head" role="button" tabindex="0" data-act="dt" data-k="meals" aria-label="План питания: показать или скрыть">
@@ -1992,7 +2061,7 @@ function foodCard(sel){
   const T=foodTarget(sel),f=dayDoc(sel).food||{},wk=foodWeek(today()),mt=maintenance();
   const ks=foodState(f.kcal,T.kcal),left=T.kcal[1]-(+f.kcal||0);
   return `<section class="card fd-card">
-    <div class="w-top"><div><div class="eyebrow">Питание · ${T.w===5?"разгрузка, калорий больше":"неделя "+T.w}</div><div class="w-big num">${f.kcal?Math.round(f.kcal).toLocaleString("ru-RU"):"—"}<small> / ${fr(T.kcal)} ккал</small></div></div>
+    <div class="w-top"><div><div class="eyebrow">Питание · ${T.w===DLW?"разгрузка, калорий больше":"неделя "+T.w}</div><div class="w-big num">${f.kcal?Math.round(f.kcal).toLocaleString("ru-RU"):"—"}<small> / ${fr(T.kcal)} ккал</small></div></div>
       ${f.kcal?`<div class="w-delta" data-t="${ks==="ok"?"up":"hold"}"><b class="num">${ks==="ok"?"в цели":left>0?"−"+Math.round(left).toLocaleString("ru-RU"):"+"+Math.round(-left).toLocaleString("ru-RU")}</b><span>${ks==="ok"?"±5%":left>0?"недобор":"перебор"}</span></div>`:""}</div>
     <div class="mb-wrap">${macroBar("Белок",f.p,T.p,"г")}${macroBar("Жиры",f.f,T.f,"г")}${macroBar("Углеводы",f.c,T.c,"г")}</div>
     <div class="fd-in">
@@ -2066,7 +2135,7 @@ function fit(c,t,max,size,weight,fam){let s=size;do{c.font=`${weight} ${s}px ${f
 function ell(c,t,max){if(c.measureText(t).width<=max)return t;while(t.length>1&&c.measureText(t+"…").width>max)t=t.slice(0,-1);return t+"…"}
 function spaced(c,t,x,y,sp,align){const w=[...t].reduce((a,ch)=>a+c.measureText(ch).width+sp,-sp);let cx=align==="right"?x-w:x;for(const ch of t){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}}
 async function storyFonts(){try{await Promise.all(["700 120px Unbounded","700 60px 'JetBrains Mono'","500 40px 'JetBrains Mono'","700 40px Manrope","600 32px Manrope"].map(f=>document.fonts.load(f)))}catch(e){}}
-function storyData(s){const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0;return {st,pt,dl:pt?Math.round((st.tonnage/pt-1)*100):null,acc:STORY_W[Math.min(5,s.week||1)],Wk:isWave(s)?WEEKS[s.week]:null,
+function storyData(s){const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0;return {st,pt,dl:pt?Math.round((st.tonnage/pt-1)*100):null,acc:STORY_W[Math.min(5,s.week||1)],Wk:isWave(s)?tplOf(s).W[s.week]:null,
   title:(TITLES[s.day]||s.day).toUpperCase(),tn:st.tonnage.toLocaleString("ru-RU").replace(/\u00a0/g," "),sn:runLen(s.date)}}
 const SF={MONO:"'JetBrains Mono',ui-monospace,monospace",SANS:"Manrope,system-ui,sans-serif",DISP:"Unbounded,'Arial Black',sans-serif"};
 function storyFlame(c,x,y,sc){c.save();c.translate(x,y);c.scale(sc,sc);const g=c.createLinearGradient(0,120,0,0);g.addColorStop(0,"#e3263b");g.addColorStop(.55,"#ff7a1a");g.addColorStop(1,"#ffc53d");
@@ -2102,7 +2171,7 @@ async function drawPoster(cv,s,handle){
     c.font=`700 34px ${MONO}`;const r=`${fmt(pr.kg)} × ${pr.reps}`,rw=c.measureText(r).width;c.fillStyle=acc;c.fillText(r,W-P-rw,y-6);c.fillStyle="#f2f4f7";c.font=`700 34px ${SANS}`;c.fillText(ell(c,pr.name,W-2*P-140-rw),P+116,y-6)}
   // низ: блины недель + стрик
   const by=1640,bx=P,bw=430;c.fillStyle="rgba(255,255,255,.14)";rr(c,bx,by-4,bw,8,4);c.fill();
-  for(let w=1;w<=5;w++){const x=bx+bw*(w-.5)/5,h=(WEEKS[w].pct-30)*1.15+24;rr(c,x-12,by-h/2,24,h,6);c.fillStyle=w===s.week?acc:"rgba(255,255,255,.10)";c.fill()}
+  const TW=tplOf(s).W,NN=TW.length-1;for(let w=1;w<=NN;w++){const x=bx+bw*(w-.5)/NN,h=(TW[w].pct-30)*1.15+24;rr(c,x-12,by-h/2,24,h,6);c.fillStyle=w===s.week?acc:"rgba(255,255,255,.10)";c.fill()}
   if(D.sn>0){storyFlame(c,W-P-250,by-58,.55);c.fillStyle="#f2f4f7";c.font=`700 60px ${MONO}`;c.fillText(String(D.sn),W-P-180,by+18);c.fillStyle="#8d94a1";c.font=`600 26px ${SANS}`;c.fillText(plural(D.sn,"тренировка","тренировки","тренировок"),W-P-180+c.measureText(String(D.sn)).width*0+0,by+56);}
 }
 // «Наклейка»: прозрачный фон — кладётся поверх своего фото или видео в сторис
@@ -2135,7 +2204,7 @@ async function drawStory(cv,s,theme,handle){
     :theme==="light"?{bg:"#f2f3f5",ink:"#111318",mut:"#5f6673",card:"#ffffff",line:"#d9dce2",acc,accInk:"#fff"}
     :{bg:"#0d0f13",ink:"#f2f4f7",mut:"#8d94a1",card:"rgba(255,255,255,.06)",line:"rgba(255,255,255,.12)",acc,accInk:"#0d0f13"};
   const MONO="'JetBrains Mono',ui-monospace,monospace",SANS="Manrope,system-ui,sans-serif",DISP="Unbounded,'Arial Black',sans-serif";
-  const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0,Wk=isWave(s)?WEEKS[s.week]:null;
+  const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0,Wk=isWave(s)?tplOf(s).W[s.week]:null;
   // фон
   c.fillStyle=T.bg;c.fillRect(0,0,W,H);
   if(theme!=="accent"){const g=c.createRadialGradient(W*.92,H*.08,0,W*.92,H*.08,W*.95);g.addColorStop(0,acc+(theme==="light"?"40":"55"));g.addColorStop(1,acc+"00");c.fillStyle=g;c.fillRect(0,0,W,H);
@@ -2152,9 +2221,9 @@ async function drawStory(cv,s,theme,handle){
   const title=(TITLES[s.day]||s.day).toUpperCase();const ts=fit(c,title,W-2*P,150,700,DISP);c.fillStyle=T.ink;c.font=`700 ${ts}px ${DISP}`;y=410+ts*.78;c.fillText(title,P,y);
   // гриф с блинами
   if(Wk){y+=56;const bw=W-2*P,cy=y+56;c.fillStyle=T.line;rr(c,P,cy-5,bw,10,5);c.fill();
-    for(let w=1;w<=5;w++){const x=P+bw*(w-.5)/5,h=(WEEKS[w].pct-30)*1.6+30,cur=w===s.week;
+    const TW=tplOf(s).W,NN=TW.length-1;for(let w=1;w<=NN;w++){const x=P+bw*(w-.5)/NN,h=(TW[w].pct-30)*1.6+30,cur=w===s.week;
       rr(c,x-17,cy-h/2,34,h,8);if(cur){c.fillStyle=acc==="#0d0f13"?T.ink:(theme==="accent"?T.ink:acc);c.fill()}else{c.fillStyle=theme==="accent"?"rgba(13,15,19,.10)":T.card;c.fill();c.strokeStyle=T.line;c.lineWidth=3;c.stroke()}
-      c.font=`${cur?700:500} 24px ${MONO}`;c.fillStyle=cur?T.ink:T.mut;c.textAlign="center";c.fillText(`Н${w} · ${WEEKS[w].pct}%`,x,cy+h/2+40);c.textAlign="left"}
+      c.font=`${cur?700:500} 24px ${MONO}`;c.fillStyle=cur?T.ink:T.mut;c.textAlign="center";c.fillText(`Н${w} · ${TW[w].pct}%`,x,cy+h/2+40);c.textAlign="left"}
     y=cy+100}
   else y+=40;
   // тоннаж
@@ -2426,7 +2495,7 @@ function rebuildW(e,val){const m=peMode(e);if(m==="wave"){e.w=waveW(e.type,val,e
   else{e.rr=e.rr||RR_DEF[m][e.type].slice();e.w=rrW(e.rr,val,e.inc);delete e.orm}}
 function startKg(e){const m=peMode(e);return m==="wave"?peVal(e):(e.w[0]&&e.w[0][3]!=null?e.w[0][3]:"")}
 function waveW(type,val,inc){const pat=type==="base"?B:I,v=+val>0?+val:null;
-  return pat.map((p,i)=>[p[0],p[1],p[2],v==null?null:type==="base"?rnd(v*PCTS[i],inc):rnd(v*[1,1,1.1,1.1,.6][i],inc)])}
+  return pat.map((p,i)=>[p[0],p[1],p[2],v==null?null:type==="base"?rnd(v*PCTS[i],inc):rnd(v*(NW===6?[1,1,1.1,1.1,1.1,.85]:[1,1,1.1,1.1,.6])[i],inc)])}
 function peVal(e){if(e.type==="base")return e.orm||(e.w[2]&&e.w[2][3]?Math.round(e.w[2][3]/PCTS[2]):"");return e.w[0]&&e.w[0][3]!=null?e.w[0][3]:""}
 function peSummary(e){const w1=e.w[0],w3=e.w[2];if(peMode(e)!=="wave")return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} · ${PROG_NAMES[peMode(e)].toLowerCase()}`;return `${w1[0]}×${w1[1]===w1[2]?w1[1]:w1[1]+"–"+w1[2]} → ${w3[0]}×${w3[1]===w3[2]?w3[1]:w3[1]+"–"+w3[2]}`}
 // ===== Готовые программы (пресеты). Упражнения — id каталога; «!» в конце id — своя схема прогрессии
@@ -2641,7 +2710,7 @@ function vProg(){
     <div class="pe-dact"><button class="link" data-act="pedmv" data-d="${di}" data-k="-1">↑ выше</button><button class="link" data-act="pedmv" data-d="${di}" data-k="1">↓ ниже</button><button class="link" data-act="pedeld" data-d="${di}" style="margin-left:auto;color:#ff5a4e">Удалить день</button></div>
   </section>`).join("");
   return `<div class="wk-head"><button class="back" data-act="pecancel" aria-label="Назад">←</button>
-    <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее.\n\nБаза — тяжёлые упражнения на много мышц сразу: жимы, тяги, приседания.\nИзоляция — на одну мышцу: бицепс, махи, разгибания.\n\n1ПМ — максимальный вес, который поднимешь 1 раз. Не знаешь — посчитай: вес × (1 + повторы ÷ 30). Например, 80 кг × 8 → 80 × 1,27 ≈ 101 кг.")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*5} тренировок</div></div></div>
+    <div style="flex:1"><h2>Моя программа ${qh("Твои дни и упражнения. Впиши вес, с которого начинаешь, — дальше трекер сам подскажет, когда брать тяжелее.\n\nБаза — тяжёлые упражнения на много мышц сразу: жимы, тяги, приседания.\nИзоляция — на одну мышцу: бицепс, махи, разгибания.\n\n1ПМ — максимальный вес, который поднимешь 1 раз. Не знаешь — посчитай: вес × (1 + повторы ÷ 30). Например, 80 кг × 8 → 80 × 1,27 ≈ 101 кг.")}</h2><div class="rir">${P.days.length} ${plural(P.days.length,"день","дня","дней")} в неделю · цикл ${P.days.length*NW} тренировок</div></div></div>
   ${S.pe.presets?presetsBlock():`<div class="me-btns"><button class="btn ghost" data-act="pepr" style="margin:0">Готовые программы</button><button class="btn ghost" data-act="peob" style="margin:0">Подобрать по анкете</button></div>`}
   <section class="card pe-glob"><div class="eyebrow">Прогрессия по умолчанию ${qh("Как растёт вес.\n\nЛинейная — каждую тренировку чуть тяжелее, пока получается. Для новичков.\n\nДвойная — сначала добавляешь повторы, потом вес. Например, 8–12: смог 12 во всех подходах — в следующий раз тяжелее.\n\nВолна — неделя за неделей вес тяжелее, повторов меньше, 5-я неделя лёгкая. Для опытных.")}</div>
     <div class="pe-chips">${["wave","double","linear"].map(k=>`<button data-act="peglob" data-k="${k}" aria-pressed="${(P.prog||"wave")===k}">${PROG_NAMES[k]}</button>`).join("")}</div></section>
@@ -2728,14 +2797,14 @@ function renderSafe(){ if(S.view!=="workout"&&S.view!=="ready"&&S.view!=="hedit"
 
 function nextCycleCard(pos,t){
   const start=nextSunday(addDays(CYCLE.end,1)),ready=cycleSessions().length>=SEQ.length*4||t>CYCLE.end;
-  const segs=(()=>{const k=[1,2,3,4].reduce((a,w)=>a+SEQ.filter(d=>logged(w,d)).length,0),pc=k/(SEQ.length*4);return `<span class="ncc-one"><i style="width:${Math.max(pc?4:0,pc*100)}%;background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 60%),${stepGrad(pc)};box-shadow:0 0 12px -3px ${stepColor(pc)}"></i></span>`})();
+  const segs=(()=>{const k=Array.from({length:DLW-1},(_,i)=>i+1).reduce((a,w)=>a+SEQ.filter(d=>logged(w,d)).length,0),pc=k/(SEQ.length*(DLW-1));return `<span class="ncc-one"><i style="width:${Math.max(pc?4:0,pc*100)}%;background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 60%),${stepGrad(pc)};box-shadow:0 0 12px -3px ${stepColor(pc)}"></i></span>`})();
   const n=cycleSessions().length;
   return `<button class="card ncc" data-act="tab" data-v="next" data-ready="${ready?1:0}">
     <span class="ncc-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.7M20 4v4.7h-4.7"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.3M4 20v-4.7h4.7"/></svg></span>
     <span class="ncc-txt">${ready?`<span class="ncc-eb">Готов к расчёту</span>`:""}<b>Цикл ${CYCLE.n+1}</b><span class="ncc-sub">Старт ${DOW[new Date(start+"T12:00:00").getDay()].toLowerCase()} ${dm(start)}</span></span>
     <span class="ncc-go" aria-hidden="true">›</span>
     <span class="ncc-bar">${segs}</span>
-    <span class="ncc-cap"><span>Данные для расчёта</span><b>${n} / ${SEQ.length*4}</b></span>
+    <span class="ncc-cap"><span>Данные для расчёта</span><b>${n} / ${SEQ.length*(DLW-1)}</b></span>
   </button>`;
 }
 
@@ -2770,11 +2839,11 @@ function cycleMap(pos,vw){
 
 // ===== Блин-циферблат: 20 делений по ободу = 20 тренировок, справа — недели
 function cycleDial(pos,vw){
-  const t=today(),R=74,cx=R+8,cy=84,r0=R-20,r1=R-2,C=w=>`var(--w${w})`;
+  const t=today(),R=74,cx=R+8,cy=84,r0=R-20,r1=R-2,C=w=>`var(--w${wci(w)})`;
   let s=`<circle cx="${cx}" cy="${cy}" r="${R+8}" fill="var(--dial-face)" stroke="var(--g-line)" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${r0-8}" fill="none" stroke="var(--g-line)"/>`;
   const q=(a,r)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
-  let done=0,cnt={1:0,2:0,3:0,4:0,5:0};
-  const ND=SEQ.length,TOT=ND*5,STP=360/TOT;
+  let done=0,cnt={1:0,2:0,3:0,4:0,5:0,6:0};
+  const ND=SEQ.length,TOT=ND*NW,STP=360/TOT;
   for(let n=0;n<TOT;n++){const w=Math.floor(n/ND)+1,d=SEQ[n%ND],ss=logged(w,d),dt=slotDate(w,d);
     const st=ss?"done":(w===pos.week&&d===pos.day&&!pos.done)?"next":dt<t?"miss":"fut";if(ss){done++;cnt[w]++}
     const a=(-90+n*STP+STP/2)*Math.PI/180,da=STP*Math.PI/180*.445,wedge=(ra,rb,k)=>{const [x1,y1]=q(a-da*k,rb),[x2,y2]=q(a+da*k,rb),[x3,y3]=q(a+da*k,ra),[x4,y4]=q(a-da*k,ra);return `M${x1} ${y1} A${rb} ${rb} 0 0 1 ${x2} ${y2} L${x3} ${y3} A${ra} ${ra} 0 0 0 ${x4} ${y4}Z`};
@@ -2785,9 +2854,9 @@ function cycleDial(pos,vw){
     s+=`<path d="${wedge(r0-10,r1+9,1.6)}" fill="transparent" data-act="hpt" data-w="${w}" data-day="${d}" style="cursor:pointer"><title>${PLAN[d].title} · ${dm(dt)}</title></path>`}
   s+=`<circle cx="${cx}" cy="${cy}" r="15" fill="url(#dialSteel)"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--bg)"/>`;
   s+=`<text x="${cx+1.5}" y="${cy-25}" text-anchor="middle" class="dial-big">${WEEKS[vw].pct}%</text><text x="${cx}" y="${cy+38}" text-anchor="middle" class="map-sm">${done} из ${TOT}</text>`;
-  const lx=190,rows=[1,2,3,4,5];
-  rows.forEach((w,i)=>{const y=cy-52+i*26+4,on=w===vw,cur=w===pos.week;
-    s+=`<g data-act="hweek" data-w="${w}" style="cursor:pointer" class="dial-row" data-on="${on?1:0}"><rect x="${lx-8}" y="${y-15}" width="${340-lx+8}" height="22" rx="8" fill="${on?`color-mix(in srgb,${C(w)} 16%,transparent)`:"transparent"}" stroke="${on?`color-mix(in srgb,${C(w)} 50%,transparent)`:"none"}"/>
+  const lx=190,rows=Array.from({length:NW},(_,i)=>i+1),RH=NW>5?22:26;
+  rows.forEach((w,i)=>{const y=cy-52+i*RH+4,on=w===vw,cur=w===pos.week;
+    s+=`<g data-act="hweek" data-w="${w}" style="cursor:pointer" class="dial-row" data-on="${on?1:0}"><rect x="${lx-8}" y="${y-15}" width="${340-lx+8}" height="${RH-4}" rx="8" fill="${on?`color-mix(in srgb,${C(w)} 16%,transparent)`:"transparent"}" stroke="${on?`color-mix(in srgb,${C(w)} 50%,transparent)`:"none"}"/>
       <circle cx="${lx+2}" cy="${y-4}" r="5" fill="${w<=pos.week?C(w):"none"}" stroke="${C(w)}" stroke-width="1.5"/>
       <text x="${lx+14}" y="${y}" class="dial-w">Н${w}</text><text x="${lx+44}" y="${y}" class="dial-p">${WEEKS[w].pct}%</text>
       <text x="332" y="${y}" text-anchor="end" class="dial-c" style="${cur?`fill:${C(w)}`:""}">${cnt[w]}/${ND}</text></g>`});
@@ -2796,7 +2865,7 @@ function cycleDial(pos,vw){
 function vHome(pos){
   if(S.store==="loading") return `<div class="empty">Загружаю твои тренировки…</div>`;
   const d=PLAN[pos.day],t=today(),vw=S.hw||pos.week,W=WEEKS[vw];
-  const plates=[1,2,3,4,5].map(w=>`<button class="plate" data-act="hweek" data-w="${w}" aria-pressed="${w===vw}" aria-label="Неделя ${w}" data-cur="${w===vw?1:0}" data-done="${w<pos.week&&w!==vw?1:0}" data-now="${w===pos.week?1:0}" style="--c:${wc(w)}"><span class="disc" style="height:${Math.round((WEEKS[w].pct-30)*1.1+18)}px"></span><small>Н${w} · ${WEEKS[w].pct}%</small></button>`).join("");
+  const plates=Array.from({length:NW},(_,i)=>i+1).map(w=>`<button class="plate" data-act="hweek" data-w="${w}" aria-pressed="${w===vw}" aria-label="Неделя ${w}" data-cur="${w===vw?1:0}" data-done="${w<pos.week&&w!==vw?1:0}" data-now="${w===pos.week?1:0}" style="--c:${wc(w)}"><span class="disc" style="height:${Math.round((WEEKS[w].pct-30)*1.1+18)}px"></span><small>Н${w} · ${WEEKS[w].pct}%</small></button>`).join("");
   const rot=SEQ.map(s=>{const dt=slotDate(vw,s),done=logged(vw,s);
     const st=done?"done":vw===pos.week&&s===pos.day?"next":dt<t?"missed":"";
     return `<button data-act="hday" data-day="${s}" data-week="${vw}" data-s="${st}" aria-pressed="${S.hday===s}" aria-label="${PLAN[s].title}, ${dm(dt)}"><b>${PLAN[s].title}</b><small>${DOW[PLAN[s].dow]} ${dm(dt)}</small></button>`}).join("");
@@ -2858,7 +2927,7 @@ function vHome(pos){
     <div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="pos">Сдвинул тренировку? Выбери вручную</div><div class="dt-body">
     <div class="pos-grid">
       <label for="pos-day">Тренировка<select id="pos-day">${SEQ.map(k=>`<option value="${k}" ${k===pos.day?"selected":""}>${PLAN[k].title}</option>`).join("")}</select></label>
-      <label for="pos-week">Неделя<select id="pos-week">${[1,2,3,4,5].map(w=>`<option value="${w}" ${w===pos.week?"selected":""}>${w} · ${WEEKS[w].name}</option>`).join("")}</select></label>
+      <label for="pos-week">Неделя<select id="pos-week">${Array.from({length:NW},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===pos.week?"selected":""}>${w} · ${WEEKS[w].name}</option>`).join("")}</select></label>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn small" data-act="setpos">Сделать следующей</button>
@@ -3034,7 +3103,7 @@ async function finish(){
     const withR=o.sets.filter(x=>x.rir!=null);if(withR.length)o.rir=withR[withR.length-1].rir;
     const wu=(e.wu||[]).filter(w=>w.done).map(w=>({kg:+String(w.kg||0).replace(",",".")||0,reps:w.reps}));if(wu.length)o.warmup=wu;return o}).filter(e=>e.sets.length);
   if(!exercises.length){toast("Отметь хотя бы один подход ✓");return}
-  const body={id:`${D.date}-${D.day}`,program:"wave",date:D.date,day:D.day,week:D.week,cycle:CYCLE.n,exercises,createdAt:Date.now()};
+  const body={id:`${D.date}-${D.day}`,program:"wave",date:D.date,day:D.day,week:D.week,cycle:CYCLE.n,nw:NW,exercises,createdAt:Date.now()};
   if(D.back!=null) body.back=D.back;
   if(D.readiness) body.readiness=D.readiness;
   body.stats=computeStats(D,exercises,body.id);
