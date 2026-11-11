@@ -2843,9 +2843,12 @@ function cycleDial(pos,vw){
   let s=`<circle cx="${cx}" cy="${cy}" r="${R+8}" fill="var(--dial-face)" stroke="var(--g-line)" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${r0-8}" fill="none" stroke="var(--g-line)"/>`;
   const q=(a,r)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
   let done=0,cnt={1:0,2:0,3:0,4:0,5:0,6:0};
-  const ND=SEQ.length,TOT=ND*NW,STP=360/TOT;
-  for(let n=0;n<TOT;n++){const w=Math.floor(n/ND)+1,d=SEQ[n%ND],ss=logged(w,d),dt=slotDate(w,d);
-    const st=ss?"done":(w===pos.week&&d===pos.day&&!pos.done)?"next":dt<t?"miss":"fut";if(ss){done++;cnt[w]++}
+  const ND=SEQ.length,TOT=ND*NW;
+  for(let w=1;w<=NW;w++)for(const d of SEQ)if(logged(w,d)){done++;cnt[w]++}
+  // 6 недель — круг из двух половин по 3 недели: какая видна, зависит от выбранной недели
+  const HW=NW>5?3:NW,h0=NW>5&&vw>3?3:0,SEG=ND*HW,STP=360/SEG;let hDone=0;
+  for(let n=0;n<SEG;n++){const w=h0+Math.floor(n/ND)+1,d=SEQ[n%ND],ss=logged(w,d),dt=slotDate(w,d);
+    const st=ss?"done":(w===pos.week&&d===pos.day&&!pos.done)?"next":dt<t?"miss":"fut";if(ss)hDone++;
     const a=(-90+n*STP+STP/2)*Math.PI/180,da=STP*Math.PI/180*.445,wedge=(ra,rb,k)=>{const [x1,y1]=q(a-da*k,rb),[x2,y2]=q(a+da*k,rb),[x3,y3]=q(a+da*k,ra),[x4,y4]=q(a-da*k,ra);return `M${x1} ${y1} A${rb} ${rb} 0 0 1 ${x2} ${y2} L${x3} ${y3} A${ra} ${ra} 0 0 0 ${x4} ${y4}Z`};
     const P=wedge(r0,r1,1),sel=w===vw&&S.hday===d,c=C(w);
     if(st==="next")s+=`<path d="${P}" fill="${c}" class="map-glow"/>`;
@@ -2853,14 +2856,15 @@ function cycleDial(pos,vw){
     if(sel)s+=`<path d="${wedge(r0-4,r1+4,1.25)}" fill="none" stroke="var(--fg)" stroke-width="2"/>`;
     s+=`<path d="${wedge(r0-10,r1+9,1.6)}" fill="transparent" data-act="hpt" data-w="${w}" data-day="${d}" style="cursor:pointer"><title>${PLAN[d].title} · ${dm(dt)}</title></path>`}
   s+=`<circle cx="${cx}" cy="${cy}" r="15" fill="url(#dialSteel)"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--bg)"/>`;
-  s+=`<text x="${cx+1.5}" y="${cy-25}" text-anchor="middle" class="dial-big">${WEEKS[vw].pct}%</text><text x="${cx}" y="${cy+38}" text-anchor="middle" class="map-sm">${done} из ${TOT}</text>`;
+  s+=`<text x="${cx+1.5}" y="${cy-25}" text-anchor="middle" class="dial-big">${WEEKS[vw].pct}%</text><text x="${cx}" y="${cy+(NW>5?31:38)}" text-anchor="middle" class="map-sm">${NW>5?`Н${h0+1}–${h0+3} · ${hDone} из ${SEG}`:`${done} из ${TOT}`}</text>`;
+  if(NW>5)[0,3].forEach((o,i)=>{s+=`<circle cx="${cx-6+i*12}" cy="${cy+R+17}" r="3.2" fill="${o===h0?"var(--fg)":"var(--line)"}"/><circle cx="${cx-6+i*12}" cy="${cy+R+17}" r="9" fill="transparent" data-act="hweek" data-w="${o===h0?vw:o+1}" style="cursor:pointer"/>`});
   const lx=190,rows=Array.from({length:NW},(_,i)=>i+1),RH=NW>5?22:26;
   rows.forEach((w,i)=>{const y=cy-52+i*RH+4,on=w===vw,cur=w===pos.week;
     s+=`<g data-act="hweek" data-w="${w}" style="cursor:pointer" class="dial-row" data-on="${on?1:0}"><rect x="${lx-8}" y="${y-15}" width="${340-lx+8}" height="${RH-4}" rx="8" fill="${on?`color-mix(in srgb,${C(w)} 16%,transparent)`:"transparent"}" stroke="${on?`color-mix(in srgb,${C(w)} 50%,transparent)`:"none"}"/>
       <circle cx="${lx+2}" cy="${y-4}" r="5" fill="${w<=pos.week?C(w):"none"}" stroke="${C(w)}" stroke-width="1.5"/>
       <text x="${lx+14}" y="${y}" class="dial-w">Н${w}</text><text x="${lx+44}" y="${y}" class="dial-p">${WEEKS[w].pct}%</text>
       <text x="332" y="${y}" text-anchor="end" class="dial-c" style="${cur?`fill:${C(w)}`:""}">${cnt[w]}/${ND}</text></g>`});
-  return `<div class="cdial"><svg viewBox="0 0 340 168" width="100%" role="img" aria-label="Циферблат цикла: ${done} из ${TOT} тренировок"><defs><linearGradient id="dialSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dee5"/><stop offset=".5" stop-color="#7d858f"/><stop offset="1" stop-color="#3a4048"/></linearGradient></defs>${s}</svg></div>`;
+  return `<div class="cdial"><svg viewBox="0 0 340 ${NW>5?184:168}" width="100%" role="img" aria-label="Циферблат цикла: ${done} из ${TOT} тренировок${NW>5?`, показаны недели ${h0+1}–${h0+3}`:""}"><defs><linearGradient id="dialSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dee5"/><stop offset=".5" stop-color="#7d858f"/><stop offset="1" stop-color="#3a4048"/></linearGradient></defs>${s}</svg></div>`;
 }
 function vHome(pos){return (typeof loginGate==="function"?loginGate():"")+vHome0(pos)}
 function vHome0(pos){
