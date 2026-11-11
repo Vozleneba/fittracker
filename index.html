@@ -15,7 +15,7 @@
 /* Layout: one narrow column, phone-first; the 5-week wave drawn as barbell plates sized by %1RM is the one bold element */
 :root{
   --bg:#eceef2; --surface:#ffffff; --surface-2:#f4f5f8; --line:#d5d9e1; --fg:#14171c; --muted:#5b6370;
-  --w1:#1f8f54; --w2:#c48e00; --w3:#d4561c; --w4:#c42a3a; --w5:#2f62cf;
+  --w1:#1f8f54; --w2:#c48e00; --w3:#d4561c; --w4:#c42a3a; --w5:#2f62cf;--w6:#c21a62;
   --up:#1f8f54; --hold:#b06a00; --warn:#c42a3a;
   --display:"Unbounded","Arial Black",system-ui,sans-serif;
   --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -24,10 +24,10 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#101216; --surface:#191c22; --surface-2:#20242c; --line:#2b303a; --fg:#eceef2; --muted:#959dab;
-  --w1:#35b874; --w2:#e8b42a; --w3:#f07a3c; --w4:#ef5464; --w5:#5b8bf0; --up:#35b874; --hold:#e0a040; --warn:#ef5464; --leaf:#4fd486; --on-leaf:#06210f; color-scheme:dark}}
+  --w1:#35b874; --w2:#e8b42a; --w3:#f07a3c; --w4:#ef5464; --w5:#5b8bf0;--w6:#ec5a94; --up:#35b874; --hold:#e0a040; --warn:#ef5464; --leaf:#4fd486; --on-leaf:#06210f; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#101216; --surface:#191c22; --surface-2:#20242c; --line:#2b303a; --fg:#eceef2; --muted:#959dab;
-  --w1:#35b874; --w2:#e8b42a; --w3:#f07a3c; --w4:#ef5464; --w5:#5b8bf0; --up:#35b874; --hold:#e0a040; --warn:#ef5464; --leaf:#4fd486; --on-leaf:#06210f; color-scheme:dark}
+  --w1:#35b874; --w2:#e8b42a; --w3:#f07a3c; --w4:#ef5464; --w5:#5b8bf0;--w6:#ec5a94; --up:#35b874; --hold:#e0a040; --warn:#ef5464; --leaf:#4fd486; --on-leaf:#06210f; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
 body{color:var(--fg);font:15px/1.45 var(--body);padding:0 16px 130px;-webkit-font-smoothing:antialiased}
@@ -638,18 +638,18 @@ details.nc-day[open]>summary{margin-bottom:6px}
    Жидкое стекло: полупрозрачные карточки с размытием над мягким цветным свечением,
    заливки — тонированное стекло с бликом сверху вместо плоских плашек; цвета — глубокие «драгоценные» тона. */
 :root{
-  --w1:#08a566;--w2:#e0a000;--w3:#f0620f;--w4:#e3201b;--w5:#2a5bff;
+  --w1:#08a566;--w2:#e0a000;--w3:#f0620f;--w4:#e3201b;--w5:#2a5bff;--w6:#d6156a;
   --up:#08a566;--hold:#d98a00;--warn:#e3201b;--leaf:#08a566;--on-leaf:#fff;
   --g-card:color-mix(in srgb,#ffffff 66%,transparent);--g-edge:rgba(255,255,255,.85);--g-line:rgba(20,30,25,.08);
   --neutral:#6b7480;--g-hi:rgba(255,255,255,.95);--g-tint:38%;--g-tint2:16%;--g-glow:.22;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --w1:#1fe08f;--w2:#ffc414;--w3:#ff7614;--w4:#ff3a2e;--w5:#5c82ff;
+  --w1:#1fe08f;--w2:#ffc414;--w3:#ff7614;--w4:#ff3a2e;--w5:#5c82ff;--w6:#ff3d8b;
   --up:#1fe08f;--hold:#ffab1a;--warn:#ff3a2e;--leaf:#1fe08f;--on-leaf:#04170e;
   --g-card:color-mix(in srgb,#161a20 62%,transparent);--g-edge:rgba(255,255,255,.10);--g-line:rgba(255,255,255,.07);
   --neutral:#a7b0bb;--g-hi:rgba(255,255,255,.14);--g-tint:40%;--g-tint2:15%;--g-glow:.34}}
 :root[data-theme="dark"]{
-  --w1:#1fe08f;--w2:#ffc414;--w3:#ff7614;--w4:#ff3a2e;--w5:#5c82ff;
+  --w1:#1fe08f;--w2:#ffc414;--w3:#ff7614;--w4:#ff3a2e;--w5:#5c82ff;--w6:#ff3d8b;
   --up:#1fe08f;--hold:#ffab1a;--warn:#ff3a2e;--leaf:#1fe08f;--on-leaf:#04170e;
   --g-card:color-mix(in srgb,#161a20 62%,transparent);--g-edge:rgba(255,255,255,.10);--g-line:rgba(255,255,255,.07);
   --neutral:#a7b0bb;--g-hi:rgba(255,255,255,.14);--g-tint:40%;--g-tint2:15%;--g-glow:.34}
@@ -975,13 +975,13 @@ const TPL={
  {name:"Гипертрофия",dates:"",base:"3×8–10",iso:"3×10–15",rir:"RIR 2",rirT:2,pct:75,rest:"2 мин",kcal:"2500"},
  {name:"Сила",dates:"",base:"4×6–8",iso:"3×10–15",rir:"RIR 1–2",rirT:1.5,pct:80,rest:"2–3 мин",kcal:"2500"},
  {name:"Сила+",dates:"",base:"4×4–6",iso:"3×10–15",rir:"RIR 1",rirT:1,pct:85,rest:"3 мин",kcal:"2500"},
- {name:"Пик",dates:"",base:"3×4–6 · жим и присед 3×2–4",iso:"3×10–15",rir:"RIR 0–1",rirT:.5,pct:87,rest:"3–4 мин",kcal:"2500"},
+ {name:"Пик",dates:"",base:"3×4–6",iso:"3×10–15",rir:"RIR 0–1",rirT:.5,pct:87,rest:"3–4 мин",kcal:"2500"},
  {name:"Разгрузка",dates:"",base:"2×6–8",iso:"2×10–12",rir:"RIR 3–4",rirT:3.5,pct:60,rest:"2 мин",kcal:"2900–3000"}]}};
 let NW=5,DLW=5,B=TPL[5].B,I=TPL[5].I,PCTS=TPL[5].P,RIRB=TPL[5].R,WEEKS=TPL[5].W;
 function setTpl(n){const T=TPL[n]||TPL[5];NW=DLW=TPL[n]?n:5;B=T.B;I=T.I;PCTS=T.P;RIRB=T.R;WEEKS=T.W}
 const tplOf=s=>TPL[s&&s.nw]||TPL[5];
 const heavyW=w=>w>=3&&w<DLW;
-const wci=w=>w>=DLW?5:Math.min(4,Math.max(1,w||1));
+const wci=(w,nw=NW)=>{w=Math.max(1,w||1);return nw===6?(w>=6?5:w===5?6:w):Math.min(5,w)};
 const mk=(pat,kgs)=>pat.map((p,i)=>[...p,kgs[i]]);
 const E=(id,name,inc,type,kgs,o={})=>({id,name,inc,type,w:mk(type==="base"?B:I,kgs),...o});
 const PLAN={
@@ -1112,7 +1112,7 @@ function applyCycle(doc){
 const MON3=["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
 function weekDates(w){const a=addDays(CYCLE.start,(w-1)*7),b=addDays(a,5);const ma=+a.slice(5,7)-1,mb=+b.slice(5,7)-1;
   return ma===mb?`${+a.slice(8,10)}–${+b.slice(8,10)} ${MON3[mb]}`:`${+a.slice(8,10)} ${MON3[ma]} – ${+b.slice(8,10)} ${MON3[mb]}`}
-const wc=w=>`var(--w${wci(w)})`;
+const wc=(w,nw)=>`var(--w${wci(w,nw)})`;
 
 const S={dt:{},view:"home",sessions:[],override:null,draft:null,store:"loading",db:null,confirmDel:null,daily:{},settings:null,ready:null};
 const $=s=>document.querySelector(s);
@@ -1297,7 +1297,7 @@ function vCalendar(){
   for(let d=1;d<=dim;d++){
     const ds=`${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`,ss=byDate[ds],p=plan[ds];
     let k="",lab="",c="var(--line)",dark=false;
-    if(ss){k="done";trained++;const s=ss[0];lab=SHORT[s.day]||"";c=wc(s.week);dark=s.week===2||s.week===3;}
+    if(ss){k="done";trained++;const s=ss[0];lab=SHORT[s.day]||"";c=wc(s.week,s.nw||5);dark=s.week===2||s.week===3;}
     else if(p&&ds>=t){k="plan";lab=SHORT[p.day];c=wc(p.week);}
     else if(p){k="miss";lab=SHORT[p.day];}
     if(p){planned++;if(logged(p.week,p.day))hit++;}
@@ -2126,7 +2126,7 @@ function vActivity(){
 }
 
 // ===== Карточка для сторис (canvas 1080×1920)
-const STORY_W=["#1fe08f","#1fe08f","#ffc414","#ff7614","#ff3a2e","#5c82ff"];
+const STORY_W=["#1fe08f","#1fe08f","#ffc414","#ff7614","#ff3a2e","#5c82ff","#ff3d8b"];
 const FLAME_OUT="M52 4c6 18-4 28-14 40-9 11-18 22-18 40a30 30 0 0 0 60 0c0-15-7-25-14-34 1 9-2 16-9 19 3-22-1-45-5-65z";
 const FLAME_IN="M50 62c3 10-3 15-7 21-3 4-5 8-5 13a12 12 0 0 0 24 0c0-8-4-12-7-16 0 5-2 7-4 8 1-9 0-17-1-26z";
 function runLen(date){const ds=[...new Set(S.sessions.map(s=>s.date))].filter(d=>d<=date).sort();let n=0,prev=null;for(const d of ds){n=prev&&dayDiff(prev,d)<=GAP?n+1:1;prev=d}return n}
@@ -2135,7 +2135,7 @@ function fit(c,t,max,size,weight,fam){let s=size;do{c.font=`${weight} ${s}px ${f
 function ell(c,t,max){if(c.measureText(t).width<=max)return t;while(t.length>1&&c.measureText(t+"…").width>max)t=t.slice(0,-1);return t+"…"}
 function spaced(c,t,x,y,sp,align){const w=[...t].reduce((a,ch)=>a+c.measureText(ch).width+sp,-sp);let cx=align==="right"?x-w:x;for(const ch of t){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}}
 async function storyFonts(){try{await Promise.all(["700 120px Unbounded","700 60px 'JetBrains Mono'","500 40px 'JetBrains Mono'","700 40px Manrope","600 32px Manrope"].map(f=>document.fonts.load(f)))}catch(e){}}
-function storyData(s){const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0;return {st,pt,dl:pt?Math.round((st.tonnage/pt-1)*100):null,acc:STORY_W[Math.min(5,s.week||1)],Wk:isWave(s)?tplOf(s).W[s.week]:null,
+function storyData(s){const st=statsOf(s),p=prevSame(s),pt=p?statsOf(p).tonnage:0;return {st,pt,dl:pt?Math.round((st.tonnage/pt-1)*100):null,acc:STORY_W[s.nw===6?wci(s.week,6):Math.min(5,s.week||1)],Wk:isWave(s)?tplOf(s).W[s.week]:null,
   title:(TITLES[s.day]||s.day).toUpperCase(),tn:st.tonnage.toLocaleString("ru-RU").replace(/\u00a0/g," "),sn:runLen(s.date)}}
 const SF={MONO:"'JetBrains Mono',ui-monospace,monospace",SANS:"Manrope,system-ui,sans-serif",DISP:"Unbounded,'Arial Black',sans-serif"};
 function storyFlame(c,x,y,sc){c.save();c.translate(x,y);c.scale(sc,sc);const g=c.createLinearGradient(0,120,0,0);g.addColorStop(0,"#e3263b");g.addColorStop(.55,"#ff7a1a");g.addColorStop(1,"#ffc53d");
@@ -3015,7 +3015,7 @@ function vHistory(){
     const del=S.confirmDel===s.id?confirmBox("Удалить тренировку?","Восстановить её будет нельзя.",`data-act="del" data-id="${esc(s.id)}"`,"Удалить",true):`<div class="h-acts"><button data-act="showsum" data-id="${esc(s.id)}">${HI.sum}Итог</button><button data-act="coachrep" data-id="${esc(s.id)}">${HI.rep}Отчёт</button><button data-act="hedit" data-id="${esc(s.id)}">${HI.edit}Изменить</button><button class="d" data-act="askdel" data-id="${esc(s.id)}">${HI.del}Удалить</button></div>`;
     const editing=S.edit&&S.edit.id===s.id;
     const tag=`Ц${s.cycle||2} · Н${s.week}`;
-    return `<div class="card hist-item dt" data-open="${S.dt["h-"+s.id]?1:0}" style="--c:${wc(s.week)};--wk:${wc(s.week)}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="h-${esc(s.id)}"><div><div class="t">${esc(TITLES[s.day]||s.day)}</div><div class="d num">${dm(s.date)}.${s.date.slice(0,4)} · ${Math.round(tonnage(s)).toLocaleString("ru-RU")} кг${s.back!=null?` · поясница ${s.back}/10`:""}</div></div><span class="wchip" data-w="${s.week}" style="--c:${wc(s.week)}">${tag}</span></div><div class="dt-body hist-body">${body+del}</div></div>`;
+    return `<div class="card hist-item dt" data-open="${S.dt["h-"+s.id]?1:0}" style="--c:${wc(s.week,s.nw||5)};--wk:${wc(s.week,s.nw||5)}"><div class="dt-sum" role="button" tabindex="0" data-act="dt" data-k="h-${esc(s.id)}"><div><div class="t">${esc(TITLES[s.day]||s.day)}</div><div class="d num">${dm(s.date)}.${s.date.slice(0,4)} · ${Math.round(tonnage(s)).toLocaleString("ru-RU")} кг${s.back!=null?` · поясница ${s.back}/10`:""}</div></div><span class="wchip" data-w="${s.week}" style="--c:${wc(s.week,s.nw||5)}">${tag}</span></div><div class="dt-body hist-body">${body+del}</div></div>`;
   }).join("");
   return `<h1 data-accent style="font:700 22px var(--display)">История</h1>${items}`;
 }
