@@ -1046,8 +1046,8 @@ function c3ex(id,name,inc,type,kgs,o={}){const pat=o.pat||(type==="base"?(o.pk?T
   const k=kgs||c3kgs(e,o.orm);e.w=pat.map((q,i)=>[q[0],q[1],q[2],k[i]]);return e}
 function buildProg3(){const X=c3ex,iso5=(a,dl)=>[a,a,a,a,a,dl];return {v:1,kind:"wave",nw:6,days:[
  {key:"push",title:"Push",sub:"Грудь · плечи · трицепс",dow:0,ex:[
-  X("bench","Жим лёжа со штангой",2.5,"base",null,{orm:117,pk:1,warm:{l:"Разминка: гриф × 10 → 50 × 5 → рабочий.",h:"Разминка: гриф → 50×5 → 70×3 → 85×2 → рабочий."},note:"1ПМ ~117 — оценка. Неделя 1 — подбор: если на первом подходе запас больше 4 повторов, сразу +5 кг."}),
-  X("smith","Smith Incline Chest Press",2.5,"base",null,{orm:95,pf:.95,warm:{l:"Один подводящий: ~60% рабочего × 3.",h:"Один подводящий: ~60% рабочего × 3."},note:"Идёт вторым после жима лёжа — веса чуть ниже процента."}),
+  X("dbinc","Жим гантелей на наклонной (кг на гантель)",2.5,"base",null,{orm:50,warm:{l:"Разминка: 12,5 → 22,5 → рабочий.",h:"Разминка: 12,5 → 22,5 → 30 → рабочий."},note:"Угол скамьи ~30°: акцент на верх груди. 1ПМ ~50 на гантель — оценка: на неделе 1, если на первом подходе запас больше 4 повторов, бери +2,5 кг."}),
+  X("chestpress","Chest Press Machine",5,"base",null,{orm:140,pf:.95,stack:5,note:"Идёт вторым после гантелей — веса чуть ниже процента."}),
   X("cablefly","Chest Fly",5,"iso",[45,45,50,50,50,45]),
   X("hilofly","Cable Chest Fly",2.5,"iso",iso5(30,23)),
   X("lat","DB Lateral Raise",2.5,"iso",iso5(15,12.5)),
@@ -1366,8 +1366,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.draft&&
 const WU_PDF={smith:{lo:[[20,10],[40,6]],hi:[[20,8],[40,6],[55,4],[65,2]]},belt:{lo:[[50,10],[70,6]],hi:[[50,8],[70,6],[90,4],[105,2]]},dbpress:{lo:[[12.5,10]],hi:[[12.5,8],[20,6],[27.5,4]]}};
 const WU_ROLE={smith:"full",chestpress:"feeder",pullup:"full",cablerow:"feeder",tbar:"feeder",legext:"light",belt:"full",bridge:"full",slpress:"feeder",dbpress:"full"};
 const WU_PCT={full:{lo:[[.5,8],[.75,4]],hi:[[.4,8],[.6,5],[.75,3],[.88,1]],dl:[[.5,8]]},feeder:{lo:[[.7,4]],hi:[[.6,4],[.8,2]],dl:[]},light:{lo:[[.5,12]],hi:[[.5,12]],dl:[]}};
-const WU_PDF6={bench:{lo:[[20,10],[50,5]],hi:[[20,8],[50,5],[70,3],[85,2]]},belt:{lo:[[60,8],[90,4]],hi:[[60,8],[90,5],[115,3],[135,2]]},dbpress:{lo:[[15,8],[25,4]],hi:[[15,8],[25,5],[32.5,3]]}};
-const WU_ROLE6={bench:"full",smith:"feeder",latpd:"full",cablerow:"feeder",tbar:"feeder",legext:"light",belt:"full",bridge:"full",slpress:"feeder",dbpress:"full"};
+const WU_PDF6={dbinc:{lo:[[12.5,10],[22.5,5]],hi:[[12.5,8],[22.5,5],[30,3]]},belt:{lo:[[60,8],[90,4]],hi:[[60,8],[90,5],[115,3],[135,2]]},dbpress:{lo:[[15,8],[25,4]],hi:[[15,8],[25,5],[32.5,3]]}};
+const WU_ROLE6={dbinc:"full",chestpress:"feeder",latpd:"full",cablerow:"feeder",tbar:"feeder",legext:"light",belt:"full",bridge:"full",slpress:"feeder",dbpress:"full"};
 function warmupFor(ex,week,kg,id){
   const role=(NW===6?WU_ROLE6:WU_ROLE)[ex.id]||(ex.type==="base"&&!ex.bw?"full":null);if(!role)return [];
   const ph=week===DLW?"dl":week>=3?"hi":"lo",WP=NW===6?WU_PDF6:WU_PDF;
